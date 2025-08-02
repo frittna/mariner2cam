@@ -75,15 +75,21 @@ def print_status() -> str:
                 config.get_files_directory() / selected_file
             )
 
-            if print_status.current_byte == 0:
+            current_byte = print_status.current_byte or 0
+            if current_byte == 0:
                 current_layer = 1
             else:
-                current_layer = (
-                    sliced_model_file.end_byte_offset_by_layer.index(
-                        print_status.current_byte
-                    )
-                    + 1
-                )
+                # Find the layer corresponding to current_byte position
+                # Find the highest layer where the current_byte has been reached
+                current_layer = 1
+                end_byte_offsets = sliced_model_file.end_byte_offset_by_layer
+                for i, end_byte in enumerate(end_byte_offsets):
+                    if current_byte >= end_byte:
+                        current_layer = i + 2  # Next layer after this completed one
+                    else:
+                        break
+                # Ensure we don't exceed the total layer count
+                current_layer = min(current_layer, sliced_model_file.layer_count)
 
             progress = (
                 100.0
@@ -114,9 +120,10 @@ def print_status() -> str:
 def list_files() -> str:
     path_parameter = str(request.args.get("path", "."))
     path = (config.get_files_directory() / path_parameter).resolve()
+    files_directory_resolved = config.get_files_directory().resolve()
     if (
-        config.get_files_directory() not in path.parents
-        and path != config.get_files_directory()
+        files_directory_resolved not in path.parents
+        and path != files_directory_resolved
     ):
         abort(400)
     with os.scandir(path) as dir_entries:
@@ -129,7 +136,7 @@ def list_files() -> str:
                 sliced_model_file: Optional[SlicedModelFile] = None
                 if get_file_extension(dir_entry.name) in get_supported_extensions():
                     if dir_entry.name.startswith("._"):
-                        if b"Mac OS X" not in open(dir_entry, "rb").read(32):
+                        if b"Mac OS X" not in open(dir_entry.path, "rb").read(32):
                             sliced_model_file = read_cached_sliced_model_file(
                                 path / dir_entry.name
                             )
@@ -141,9 +148,7 @@ def list_files() -> str:
                 file_data: Dict[str, Any] = {
                     "filename": dir_entry.name,
                     "path": str(
-                        (path / dir_entry.name).relative_to(
-                            config.get_files_directory()
-                        )
+                        (path / dir_entry.name).relative_to(files_directory_resolved)
                     ),
                 }
 
@@ -174,7 +179,11 @@ def list_files() -> str:
 def file_details() -> str:
     filename = str(request.args.get("filename"))
     path = (config.get_files_directory() / filename).resolve()
-    if config.get_files_directory() not in path.parents:
+    files_directory_resolved = config.get_files_directory().resolve()
+    if (
+        files_directory_resolved not in path.parents
+        and path != files_directory_resolved
+    ):
         abort(400)
     if not os.path.isfile(path):
         abort(400)
@@ -210,7 +219,11 @@ def upload_file() -> str:
 def delete_file() -> str:
     filename = str(request.args.get("filename"))
     path = (config.get_files_directory() / filename).resolve()
-    if config.get_files_directory() not in path.parents:
+    files_directory_resolved = config.get_files_directory().resolve()
+    if (
+        files_directory_resolved not in path.parents
+        and path != files_directory_resolved
+    ):
         abort(400)
     # we use os.path.isfile instead of Path.is_file here because pyfakefs doesn't
     # seem to properly mock Path.is_file as of pyfakefs 4.4.0
@@ -224,7 +237,11 @@ def delete_file() -> str:
 def file_preview() -> Response:
     filename = str(request.args.get("filename"))
     path = (config.get_files_directory() / filename).resolve()
-    if config.get_files_directory() not in path.parents:
+    files_directory_resolved = config.get_files_directory().resolve()
+    if (
+        files_directory_resolved not in path.parents
+        and path != files_directory_resolved
+    ):
         abort(400)
     if not os.path.isfile(path):
         abort(400)
