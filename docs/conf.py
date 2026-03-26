@@ -17,9 +17,9 @@
 
 # -- Project information -----------------------------------------------------
 
-project = "mariner"
-copyright = "2021, Luiz Ribeiro"
-author = "Luiz Ribeiro"
+project = "mariner2"
+copyright = "2026, Alejandro Mora"
+author = "Alejandro Mora"
 
 
 # -- General configuration ---------------------------------------------------

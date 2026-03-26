@@ -5,9 +5,9 @@ description = "Web application for controlling MSLA 3D Printers based on ChiTu c
 license = "MIT"
 readme = "README.rst"
 authors = [
+  "Alejandro Mora <mail@alejandro.md>", 
   "Luiz Ribeiro <luizribeiro@gmail.com>",
-  "Desterly",
-  "Alejandro Mora <mail@alejandro.md>",  
+  "Desterly", 
 ]
 
 [tool.poetry.scripts]
