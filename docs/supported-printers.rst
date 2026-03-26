@@ -9,6 +9,7 @@ community:
 - Elegoo Mars Pro
 - Elegoo Mars 2
 - Elegoo Mars 2 Pro
+- Elegoo Mars 3
 - Elegoo Saturn
 - Phrozen Sonic Mighty 4K
 - Phrozen Sonic Mini 4K

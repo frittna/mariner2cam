@@ -4,7 +4,7 @@ Contributing
 .. highlight:: bash
 
 Contributions to Mariner 2 are welcome! Both code and documentation are hosted on
-our `GitHub repository <https://github.com/luizribeiro/mariner>`_.  If you
+our `GitHub repository <https://github.com/amd989/mariner>`_.  If you
 are not familiar with GitHub and Pull Requests, we recommend for you to read
 `GitHub's documentation
 <https://docs.github.com/en/github/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests>`_.
@@ -14,9 +14,9 @@ This document will guide you through setting up your development environment to
 :ref:`write documentation <Documentation>`.
 
 Before diving into the sections below, make sure you have a checkout of the
-`mariner git repository <https://github.com/luizribeiro/mariner>`_::
+`mariner git repository <https://github.com/amd989/mariner>`_::
 
-   $ git clone https://github.com/luizribeiro/mariner.git
+   $ git clone https://github.com/amd989/mariner.git
 
 
 Development
@@ -27,7 +27,7 @@ Mariner 2 is developed largely on top of `Python <https://www.python.org/>`_,
 <https://reactjs.org/>`_.
 
 If you are interested to help with development, first make sure that you have
-`Python 3.7 (or newer) <https://www.python.org/downloads/>`_ installed. We also
+`Python 3.11 (or newer) <https://www.python.org/downloads/>`_ installed. We also
 use `Poetry <https://python-poetry.org/>`_ for dependency management, so you
 should have that installed as well.
 

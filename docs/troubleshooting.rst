@@ -77,16 +77,16 @@ Other Issues
 
 If your issue isn't listed above, check the ``mariner3d`` logs for clues:
 
-.. code-block:: bash
+.. code-block:: shell-session
 
    $ sudo journalctl -ub mariner3d.service
 
 Also check the message buffer of the Linux kernel for errors:
 
-.. code-block:: bash
+.. code-block:: shell-session
 
    $ sudo dmesg
 
 Carefully read the :ref:`Installation Guide` once again and, if none of that
 helps, `file an issue on GitHub
-<https://github.com/luizribeiro/mariner/issues/new/choose>`_!
+<https://github.com/amd989/mariner/issues/new/choose>`_!

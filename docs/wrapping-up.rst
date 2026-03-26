@@ -6,7 +6,7 @@ instructions for now :)
 
 You can check that the ``mariner3d`` service is running with:
 
-.. code-block:: bash
+.. code-block:: shell-session
 
    $ sudo systemctl status mariner3d
 

@@ -3,8 +3,14 @@ Requirements
 
 Before you get started, make sure you have the following:
 
-* **Raspberry Pi Zero W, Zero WH, 3A+ or 4B**. See Wikipedia's article about the `Raspberry Pi specifications <https://en.wikipedia.org/wiki/Raspberry_Pi#Specifications>`_ for a list of which models support USB OTG.
 * **A supported printer.** Most MSLA 3D printers with a ChiTu board should work. We keep a list of `tested 3D Printers <supported-printers.rst>`_ on our documentation.
+
+Raspberry Pi Setup
+------------------
+
+If you are running Mariner 2 on a Raspberry Pi (the most common setup):
+
+* **Raspberry Pi Zero W, Zero WH, 3A+ or 4B**. See Wikipedia's article about the `Raspberry Pi specifications <https://en.wikipedia.org/wiki/Raspberry_Pi#Specifications>`_ for a list of which models support USB OTG.
 * **A USB cable** to connect between Pi and printer mainboard, please use:
 
   * Micro-USB to USB-A male *if using a Pi Zero W*
@@ -17,3 +23,17 @@ Before you get started, make sure you have the following:
   with poor WiFi signal, making uploading files too slow or it can also cause serial connection drops.
 * **Micro-SD card** faster is better and size is depending on how much space you want to have for the printed files. 2GB would likely work but 4GB or 8GB would probably me a better start.
 * **An hour or two** and some basic linux knowledge :-)
+
+Docker Setup
+------------
+
+Alternatively, you can run Mariner 2 as a Docker container on any Linux machine
+with a USB connection to the printer. This requires:
+
+* **Docker** installed on the host machine
+* **A USB serial connection** to the printer (typically ``/dev/ttyUSB0``)
+* **USB Gadget support** on the host (if using USB mass storage emulation)
+
+Supported architectures: ``amd64``, ``arm64``, ``armhf``.
+
+See the :ref:`Docker <Docker>` section of the software setup for details.
