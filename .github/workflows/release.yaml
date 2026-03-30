@@ -74,7 +74,8 @@ jobs:
 
               # Collect output
               mkdir -p output
-              cp /src/*.deb output/ 2>/dev/null || cp /*.deb output/ 2>/dev/null || true
+              cp /src/*.deb output/ 2>/dev/null || cp /*.deb output/ 2>/dev/null
+              test -n "$(ls output/*.deb 2>/dev/null)" || { echo "ERROR: No .deb files produced"; exit 1; }
             '
 
       - name: Upload .deb artifact
@@ -110,20 +111,14 @@ jobs:
         run: |
           docker run --rm --platform ${{ matrix.docker_platform }} \
             -v "$PWD":/build -w /build \
-            rockylinux:9 bash -c '
+            fedora:41 bash -c '
               set -e
               VERSION='"${{ steps.version.outputs.version }}"'
 
-              dnf install -y epel-release
-              dnf config-manager --set-enabled crb
               dnf install -y \
-                gcc make python3.11-devel python3.11-pip python3.11-setuptools \
+                gcc make python3-devel python3-pip python3-setuptools \
                 libffi-devel openssl-devel libxml2-devel libxslt-devel \
                 zlib-devel rpm-build systemd-rpm-macros nodejs npm curl git
-
-              # Make python3.11 the default python3
-              alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1
-              alternatives --set python3 /usr/bin/python3.11
 
               # Install Poetry
               curl -sSL https://install.python-poetry.org | python3 -
@@ -218,6 +213,7 @@ jobs:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
+          pattern: "{deb-*,rpm-*}"
           path: packages
           merge-multiple: true
 

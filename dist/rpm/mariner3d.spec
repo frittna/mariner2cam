@@ -40,9 +40,11 @@ python3 -m venv %{buildroot}/opt/venvs/mariner3d
 %{buildroot}/opt/venvs/mariner3d/bin/pip install --no-cache-dir \
     /root/rpmbuild/SOURCES/mariner-%{version}.tar.gz
 
-# Fix shebang and paths in the virtualenv (relocate from buildroot)
+# Clean up virtualenv artifacts not needed at runtime
 find %{buildroot}/opt/venvs/mariner3d -type f -name "*.pyc" -delete
-sed -i "s|%{buildroot}||g" %{buildroot}/opt/venvs/mariner3d/bin/*
+find %{buildroot}/opt/venvs/mariner3d -name ".gitignore" -delete
+sed -i "s|%{buildroot}||g" %{buildroot}/opt/venvs/mariner3d/bin/* \
+    %{buildroot}/opt/venvs/mariner3d/pyvenv.cfg
 
 # Install frontend assets into the virtualenv
 cp -r /build/frontend/dist/ %{buildroot}/opt/venvs/mariner3d/
@@ -83,3 +85,27 @@ usermod -aG dialout mariner 2>/dev/null || true
 %config(noreplace) %{_sysconfdir}/mariner/config.toml
 
 %changelog
+* Thu Aug 03 2023 Alejandro Mora <mail@alejandro.md> - 0.3.1-1
+- Added dark mode
+- Upgrading dependencies
+- Fixed Github Actions workflows execution issues
+- Fixing exceptions after starting print
+
+* Thu Aug 03 2023 Alejandro Mora <mail@alejandro.md> - 0.3.0-1
+- Added support for encrypted .ctb files
+- Upgrading dependencies
+- Fixed Github Actions workflows execution issues
+
+* Sat Apr 17 2021 Luiz Ribeiro <luizribeiro@gmail.com> - 0.2.0-1
+- Added support for more printers
+- .cbddlp and .fdg files are now supported in addition to .ctb
+- Fixed bugs related to write buffers not being flushed after file upload
+- Most recently uploaded files are now listed first
+- Other small bug fixes and upgrades of dependencies
+
+* Sat Oct 17 2020 Luiz Ribeiro <luizribeiro@gmail.com> - 0.1.1-1
+- Fixed bug when a non-ctb file was under /mnt/usb_share
+- Allow to delete non-ctb files from /mnt/usb_share
+
+* Sun Oct 11 2020 Luiz Ribeiro <luizribeiro@gmail.com> - 0.1.0-1
+- Initial release
