@@ -1,2 +1,3 @@
 ../frontend/dist/ opt/venvs/mariner3d
 ../config.toml etc/mariner/
+scripts/mariner3d-setup-pi usr/sbin/

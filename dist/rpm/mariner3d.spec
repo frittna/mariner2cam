@@ -49,9 +49,15 @@ sed -i "s|%{buildroot}||g" %{buildroot}/opt/venvs/mariner3d/bin/* \
 # Install frontend assets into the virtualenv
 cp -r /build/frontend/dist/ %{buildroot}/opt/venvs/mariner3d/
 
-# Install systemd service
+# Install systemd services
 install -D -m 0644 /build/dist/rpm/mariner3d.service \
     %{buildroot}%{_unitdir}/mariner3d.service
+install -D -m 0644 /build/dist/rpm/mariner-usb-gadget.service \
+    %{buildroot}%{_unitdir}/mariner-usb-gadget.service
+
+# Install Raspberry Pi setup helper
+install -D -m 0755 /build/dist/scripts/mariner3d-setup-pi \
+    %{buildroot}%{_sbindir}/mariner3d-setup-pi
 
 # Install default config
 install -D -m 0644 /build/config.toml \
@@ -69,18 +75,23 @@ usermod -aG dialout mariner 2>/dev/null || true
 
 %post
 %systemd_post mariner3d.service
+%systemd_post mariner-usb-gadget.service
 
 %preun
 %systemd_preun mariner3d.service
+%systemd_preun mariner-usb-gadget.service
 
 %postun
 %systemd_postun_with_restart mariner3d.service
+%systemd_postun_with_restart mariner-usb-gadget.service
 
 %files
 %dir /opt/venvs/mariner3d
 /opt/venvs/mariner3d/*
 %{_bindir}/mariner
+%{_sbindir}/mariner3d-setup-pi
 %{_unitdir}/mariner3d.service
+%{_unitdir}/mariner-usb-gadget.service
 %dir %{_sysconfdir}/mariner
 %config(noreplace) %{_sysconfdir}/mariner/config.toml
 

@@ -1,0 +1,16 @@
+[Unit]
+Description=Mariner USB Mass Storage Gadget
+Documentation=https://github.com/amd989/mariner
+DefaultDependencies=no
+After=local-fs.target
+Before=mariner3d.service
+ConditionPathExists=/piusb.bin
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/sbin/modprobe g_mass_storage file=/piusb.bin stall=0 ro=1
+ExecStop=/sbin/modprobe -r g_mass_storage
+
+[Install]
+WantedBy=multi-user.target

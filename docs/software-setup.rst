@@ -90,6 +90,41 @@ The image is also available from GitHub Container Registry:
    port on the host system as described below. Pass the serial device and USB
    share volume into the container.
 
+Automated Raspberry Pi setup
+----------------------------
+
+If you installed Mariner 2 from the apt or dnf repository on a Raspberry Pi,
+the package ships a helper script that performs all of the boot-partition,
+USB gadget, and serial port steps described in the rest of this page:
+
+.. code-block:: shell-session
+
+   $ sudo mariner3d-setup-pi
+
+The script is idempotent — safe to re-run — and backs up each file it edits
+to ``<file>.mariner.bak`` on the first run. It auto-detects your Pi model
+(adding ``dr_mode=peripheral`` where needed) and the boot partition location
+(``/boot`` vs ``/boot/firmware`` on Bookworm and newer).
+
+Useful flags:
+
+.. code-block:: shell-session
+
+   $ sudo mariner3d-setup-pi --size 4096   # 4 GB container instead of 2 GB
+   $ sudo mariner3d-setup-pi --dry-run     # show changes without applying
+   $ sudo mariner3d-setup-pi --help
+
+Once it finishes, reboot the Pi and skip ahead to :doc:`wrapping-up`. The
+remaining sections on this page document the same steps manually, in case you
+prefer to run them yourself or are not on a Raspberry Pi OS image.
+
+.. note::
+   The script installs a ``mariner-usb-gadget.service`` systemd unit that
+   loads the ``g_mass_storage`` module at boot, replacing the legacy
+   ``/etc/rc.local`` approach. If you previously followed the manual
+   instructions, you can remove the ``modprobe g_mass_storage`` line from
+   ``/etc/rc.local`` — the systemd unit handles it now.
+
 USB Gadget Setup
 ----------------
 

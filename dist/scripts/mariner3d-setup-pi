@@ -1,0 +1,257 @@
+#!/bin/bash
+# mariner3d-setup-pi — one-shot Raspberry Pi configuration for mariner3d.
+#
+# Configures the USB gadget (mass storage) and UART serial so the Pi can
+# upload files to, and talk to, the printer's ChiTu mainboard. Idempotent:
+# safe to re-run. All edited files are backed up to *.mariner.bak on first
+# run.
+#
+# See https://github.com/amd989/mariner for details.
+
+set -euo pipefail
+
+SIZE_MB=2048
+DRY_RUN=0
+FORCE=0
+
+usage() {
+  cat <<'USAGE'
+mariner3d-setup-pi — configure a Raspberry Pi for mariner3d.
+
+Usage:
+  sudo mariner3d-setup-pi [--size MB] [--dry-run] [--force]
+
+Options:
+  --size MB    Size of /piusb.bin in MB (default: 2048)
+  --dry-run    Print what would be done without changing anything
+  --force      Skip Raspberry Pi detection (use at your own risk)
+  -h, --help   Show this help
+
+What it does (all steps are idempotent):
+  - Adds dtoverlay=dwc2 and enable_uart=1 to config.txt
+  - Adds modules-load=dwc2 to cmdline.txt after rootwait
+  - Removes console=serial0,115200 from cmdline.txt
+  - Creates /piusb.bin (FAT32) as the USB mass-storage backing file
+  - Creates /mnt/usb_share and adds an /etc/fstab entry
+  - Disables the serial-getty@ttyS0 login console
+  - Enables mariner-usb-gadget.service
+USAGE
+  exit "${1:-0}"
+}
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --size) SIZE_MB="$2"; shift 2 ;;
+    --dry-run) DRY_RUN=1; shift ;;
+    --force) FORCE=1; shift ;;
+    -h|--help) usage ;;
+    *) echo "unknown option: $1" >&2; usage 1 ;;
+  esac
+done
+
+log() { printf '[mariner-setup] %s\n' "$*"; }
+
+run() {
+  if [ "$DRY_RUN" -eq 1 ]; then
+    printf '[dry-run] %s\n' "$*"
+  else
+    eval "$@"
+  fi
+}
+
+require_root() {
+  if [ "$(id -u)" -ne 0 ]; then
+    echo "this script must be run as root (try: sudo $0)" >&2
+    exit 1
+  fi
+}
+
+detect_pi() {
+  if [ "$FORCE" -eq 1 ]; then
+    log "--force: skipping Raspberry Pi detection"
+    PI_MODEL="unknown"
+    return
+  fi
+  if [ ! -r /proc/device-tree/model ]; then
+    echo "cannot read /proc/device-tree/model — this doesn't look like a Raspberry Pi." >&2
+    echo "re-run with --force to proceed anyway." >&2
+    exit 1
+  fi
+  PI_MODEL=$(tr -d '\0' </proc/device-tree/model)
+  case "$PI_MODEL" in
+    *"Raspberry Pi"*) ;;
+    *)
+      echo "device model '$PI_MODEL' is not a Raspberry Pi." >&2
+      echo "re-run with --force to proceed anyway." >&2
+      exit 1
+      ;;
+  esac
+  log "detected: $PI_MODEL"
+}
+
+detect_boot_dir() {
+  # Raspberry Pi OS Bookworm+ moved firmware files to /boot/firmware/.
+  if [ -f /boot/firmware/config.txt ]; then
+    BOOT=/boot/firmware
+  elif [ -f /boot/config.txt ]; then
+    BOOT=/boot
+  else
+    echo "cannot find config.txt under /boot or /boot/firmware" >&2
+    exit 1
+  fi
+  log "boot partition: $BOOT"
+}
+
+dtoverlay_line() {
+  # Pi 3A+ needs explicit peripheral mode because dwc2 can't auto-sense OTG
+  # on that board.
+  case "$PI_MODEL" in
+    *"Pi 3 Model A"*)
+      echo "dtoverlay=dwc2,dr_mode=peripheral" ;;
+    *)
+      echo "dtoverlay=dwc2" ;;
+  esac
+}
+
+backup_once() {
+  local f="$1"
+  local bak="${f}.mariner.bak"
+  if [ ! -e "$bak" ] && [ -e "$f" ]; then
+    run "cp -a '$f' '$bak'"
+    log "backed up $f -> $bak"
+  fi
+}
+
+ensure_line_in_file() {
+  local line="$1" file="$2"
+  if [ -e "$file" ] && grep -qxF -- "$line" "$file"; then
+    log "already present in $(basename "$file"): $line"
+    return
+  fi
+  backup_once "$file"
+  run "printf '%s\n' '$line' >> '$file'"
+  log "added to $(basename "$file"): $line"
+}
+
+configure_config_txt() {
+  local f="$BOOT/config.txt"
+  ensure_line_in_file "$(dtoverlay_line)" "$f"
+  ensure_line_in_file "enable_uart=1" "$f"
+}
+
+configure_cmdline_txt() {
+  local f="$BOOT/cmdline.txt"
+  if [ ! -f "$f" ]; then
+    echo "$f not found" >&2
+    exit 1
+  fi
+  local content changed=0
+  content=$(cat "$f")
+
+  if ! printf '%s' "$content" | grep -qw "modules-load=dwc2"; then
+    if printf '%s' "$content" | grep -qw "rootwait"; then
+      content=$(printf '%s' "$content" | sed 's/\brootwait\b/& modules-load=dwc2/')
+    else
+      content="$content modules-load=dwc2"
+    fi
+    changed=1
+    log "will add modules-load=dwc2 to cmdline.txt"
+  else
+    log "modules-load=dwc2 already in cmdline.txt"
+  fi
+
+  if printf '%s' "$content" | grep -q "console=serial0,115200"; then
+    content=$(printf '%s' "$content" | sed -E 's/ *console=serial0,115200//')
+    changed=1
+    log "will remove console=serial0,115200 from cmdline.txt"
+  fi
+
+  if [ "$changed" -eq 1 ]; then
+    backup_once "$f"
+    if [ "$DRY_RUN" -eq 1 ]; then
+      printf '[dry-run] would write to %s:\n%s\n' "$f" "$content"
+    else
+      printf '%s\n' "$content" >"$f"
+    fi
+  fi
+}
+
+create_piusb_image() {
+  if [ -e /piusb.bin ]; then
+    log "/piusb.bin already exists — leaving as-is"
+    return
+  fi
+  log "creating /piusb.bin (${SIZE_MB} MB)"
+  run "dd if=/dev/zero of=/piusb.bin bs=1M count=$SIZE_MB status=progress"
+  run "mkdosfs /piusb.bin -F 32 -I"
+}
+
+ensure_mount_point() {
+  if [ ! -d /mnt/usb_share ]; then
+    run "mkdir -p /mnt/usb_share"
+    log "created /mnt/usb_share"
+  fi
+}
+
+configure_fstab() {
+  local gid line
+  if getent group mariner >/dev/null; then
+    gid=$(getent group mariner | cut -d: -f3)
+  else
+    log "mariner group not found — install mariner3d first, then re-run this script"
+    return
+  fi
+  line="/piusb.bin /mnt/usb_share vfat users,gid=$gid,umask=002 0 2"
+  if grep -qE '^[[:space:]]*/piusb\.bin[[:space:]]+/mnt/usb_share' /etc/fstab 2>/dev/null; then
+    log "fstab entry for /piusb.bin already present"
+    return
+  fi
+  backup_once /etc/fstab
+  run "printf '%s\n' '$line' >> /etc/fstab"
+  log "added fstab entry for /piusb.bin"
+}
+
+disable_serial_console() {
+  local changed=0
+  if systemctl is-enabled --quiet serial-getty@ttyS0.service 2>/dev/null; then
+    run "systemctl disable serial-getty@ttyS0.service"
+    changed=1
+  fi
+  if systemctl is-active --quiet serial-getty@ttyS0.service 2>/dev/null; then
+    run "systemctl stop serial-getty@ttyS0.service"
+    changed=1
+  fi
+  if [ "$changed" -eq 1 ]; then
+    log "stopped/disabled serial-getty@ttyS0"
+  else
+    log "serial-getty@ttyS0 already disabled"
+  fi
+}
+
+enable_usb_gadget_unit() {
+  if ! systemctl list-unit-files mariner-usb-gadget.service >/dev/null 2>&1; then
+    log "mariner-usb-gadget.service not installed — reinstall mariner3d to get it"
+    return
+  fi
+  run "systemctl enable mariner-usb-gadget.service"
+  if [ "$DRY_RUN" -eq 0 ] && [ -e /piusb.bin ]; then
+    systemctl start mariner-usb-gadget.service 2>/dev/null || \
+      log "couldn't start mariner-usb-gadget.service now — a reboot will apply it"
+  fi
+}
+
+main() {
+  require_root
+  detect_pi
+  detect_boot_dir
+  configure_config_txt
+  configure_cmdline_txt
+  create_piusb_image
+  ensure_mount_point
+  configure_fstab
+  disable_serial_console
+  enable_usb_gadget_unit
+  log "done. reboot to apply boot-time changes."
+}
+
+main "$@"
