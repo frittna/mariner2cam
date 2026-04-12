@@ -401,6 +401,27 @@ class MarinerServerTest(TestCase):
             str(config.get_files_directory() / "etc_passwd.ctb")
         )
 
+    def test_upload_file_to_subdirectory(self) -> None:
+        self.fs.create_dir("/mnt/usb_share/uploads/")
+        data = {"file": (io.BytesIO(b"abcdef"), "myfile.ctb")}
+        with patch.object(FileStorage, "save") as save_file_mock:
+            response = self.client.post("/api/upload_file?path=uploads", data=data)
+        expect(response.status_code).to_equal(200)
+        expect(response.get_json()).to_equal({"success": True})
+        save_file_mock.assert_called_once_with(
+            str(config.get_files_directory() / "uploads" / "myfile.ctb")
+        )
+
+    def test_upload_file_with_invalid_parent_path(self) -> None:
+        data = {"file": (io.BytesIO(b"abcdef"), "myfile.ctb")}
+        response = self.client.post("/api/upload_file?path=../../etc", data=data)
+        expect(response.status_code).to_equal(400)
+
+    def test_upload_file_to_missing_directory(self) -> None:
+        data = {"file": (io.BytesIO(b"abcdef"), "myfile.ctb")}
+        response = self.client.post("/api/upload_file?path=no_such_dir", data=data)
+        expect(response.status_code).to_equal(400)
+
     def test_delete_file(self) -> None:
         expect(os.path.exists(config.get_files_directory() / "mariner.ctb")).to_equal(
             False
@@ -429,11 +450,51 @@ class MarinerServerTest(TestCase):
         response = self.client.post("/api/delete_file?filename=../../etc/passwd")
         expect(response.status_code).to_equal(400)
 
+    def test_create_directory(self) -> None:
+        response = self.client.post("/api/create_directory?path=.&name=my_project")
+        expect(response.status_code).to_equal(200)
+        expect(response.get_json()).to_equal({"success": True})
+        expect(os.path.isdir(config.get_files_directory() / "my_project")).to_equal(
+            True
+        )
+
+    def test_create_directory_under_subdirectory(self) -> None:
+        self.fs.create_dir("/mnt/usb_share/nested/")
+        response = self.client.post("/api/create_directory?path=nested&name=sub")
+        expect(response.status_code).to_equal(200)
+        expect(os.path.isdir(config.get_files_directory() / "nested" / "sub")).to_equal(
+            True
+        )
+
+    def test_create_directory_duplicate(self) -> None:
+        self.fs.create_dir("/mnt/usb_share/exists/")
+        response = self.client.post("/api/create_directory?path=.&name=exists")
+        expect(response.status_code).to_equal(400)
+
+    def test_create_directory_invalid_parent_path(self) -> None:
+        response = self.client.post("/api/create_directory?path=../etc&name=bad")
+        expect(response.status_code).to_equal(400)
+
+    def test_create_directory_missing_name(self) -> None:
+        response = self.client.post("/api/create_directory?path=.")
+        expect(response.status_code).to_equal(400)
+
     def test_get_index(self) -> None:
         with patch(
             "mariner.server.render_template", return_value=""
         ) as render_template_mock:
             response = self.client.get("/")
+            render_template_mock.assert_called_with(
+                "index.html",
+                supported_extensions=ANY,
+            )
+        expect(response.status_code).to_equal(200)
+
+    def test_get_spa_client_route_serves_index(self) -> None:
+        with patch(
+            "mariner.server.render_template", return_value=""
+        ) as render_template_mock:
+            response = self.client.get("/files")
             render_template_mock.assert_called_with(
                 "index.html",
                 supported_extensions=ANY,

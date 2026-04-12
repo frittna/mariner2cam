@@ -159,4 +159,33 @@ describe("api client", () => {
       "/api/file_preview?filename=subdir%2Ftest.ctb",
     );
   });
+
+  it("creates a directory with POST", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ success: true }),
+    } as Response);
+
+    await api.createDirectory("foo/bar", "new_dir");
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/create_directory?path=foo%2Fbar&name=new_dir",
+      expect.objectContaining({ method: "POST" }),
+    );
+  });
+
+  it("uploads a file with path query", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ success: true }),
+    } as Response);
+
+    const file = new File(["x"], "test.ctb", {
+      type: "application/octet-stream",
+    });
+    await api.uploadFile(file, "foo/bar");
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/upload_file?path=foo%2Fbar",
+      expect.objectContaining({ method: "POST", body: expect.any(FormData) }),
+    );
+  });
 });
