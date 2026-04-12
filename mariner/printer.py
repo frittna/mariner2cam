@@ -190,7 +190,16 @@ class ChiTuPrinter:
         original_timeout = self._serial_port.timeout
         if timeout_secs is not None:
             self._serial_port.timeout = timeout_secs
-        response = self._serial_port.readline().decode("utf-8")
+        # A single readline often times out (default 0.1s) before the board
+        # replies, yielding ''. Retrying readline without re-sending avoids
+        # flaky UnexpectedPrinterResponse on /api/print_status and elsewhere.
+        max_empty_line_reads = 15
+        response = ""
+        for _ in range(max_empty_line_reads):
+            line = self._serial_port.readline().decode("utf-8")
+            if line:
+                response = line
+                break
         if timeout_secs is not None:
             self._serial_port.timeout = original_timeout
         # TODO actually read the rest of the response instead of just

@@ -84,6 +84,20 @@ class ChiTuPrinterTest(TestCase):
 
         self.serial_port_mock.write.assert_called_once_with(b"M4000\r\n")
         expect(print_status.state).to_equal(PrinterState.IDLE)
+
+    def test_get_print_status_after_slow_first_readline(self) -> None:
+        """First readline can time out empty before firmware replies (see #180)."""
+        self.serial_port_mock.readline.side_effect = [
+            b"",
+            b"ok B:0/0 X:0.000 Y:0.000 Z:8.233 F:0/0 D:0/0/1 ",
+        ]
+
+        self.printer.open()
+        print_status = self.printer.get_print_status()
+        self.printer.close()
+
+        self.serial_port_mock.write.assert_called_once_with(b"M4000\r\n")
+        expect(print_status.state).to_equal(PrinterState.IDLE)
         expect(print_status.current_byte).to_be_none()
         expect(print_status.total_bytes).to_be_none()
 
