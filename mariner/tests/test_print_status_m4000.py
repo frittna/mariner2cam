@@ -4,7 +4,11 @@ from unittest import TestCase
 from unittest.mock import patch
 
 from mariner.printer import PrinterState
-from mariner.server.api import _file_byte_for_layer_lookup, reset_m4000_d_tracking
+from mariner.server.api import (
+    _current_layer_from_ratio_progress,
+    _file_byte_for_layer_lookup,
+    reset_m4000_d_tracking,
+)
 
 
 class M4000FileByteTest(TestCase):
@@ -44,3 +48,9 @@ class M4000FileByteTest(TestCase):
         reset_m4000_d_tracking()
         pos = _file_byte_for_layer_lookup(800000, 832745, PrinterState.PRINTING)
         self.assertEqual(pos, 32745)
+
+    def test_ratio_layer_from_progress(self) -> None:
+        self.assertEqual(_current_layer_from_ratio_progress(0.0, 400), 1)
+        self.assertEqual(_current_layer_from_ratio_progress(100.0, 400), 400)
+        pr = 100.0 * 256537 / 832745
+        self.assertEqual(_current_layer_from_ratio_progress(pr, 400), 124)

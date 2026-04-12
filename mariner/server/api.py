@@ -1,3 +1,4 @@
+import math
 import os
 import traceback
 from enum import Enum
@@ -39,6 +40,19 @@ def reset_m4000_d_tracking() -> None:
     global _m4000_prev, _m4000_interpretation
     _m4000_prev = None
     _m4000_interpretation = None
+
+
+def _current_layer_from_ratio_progress(progress: float, layer_count: int) -> int:
+    """Map linear progress percent to a 1-based layer index (ratio_* modes)."""
+    if layer_count <= 0:
+        return 1
+    return max(
+        1,
+        min(
+            layer_count,
+            math.ceil(progress / 100.0 * layer_count - 1e-9),
+        ),
+    )
 
 
 def _file_byte_for_layer_lookup(
@@ -135,29 +149,53 @@ def print_status() -> Union[str, Response]:
 
             current_byte = print_status.current_byte or 0
             total_bytes = print_status.total_bytes or 0
-            file_byte = _file_byte_for_layer_lookup(
-                current_byte, total_bytes, print_status.state
-            )
-            if file_byte == 0:
-                current_layer = 1
-            else:
-                # Find the layer corresponding to file_byte position (see
-                # _file_byte_for_layer_lookup for M4000 D: read vs remaining).
-                current_layer = 1
-                end_byte_offsets = sliced_model_file.end_byte_offset_by_layer
-                for i, end_byte in enumerate(end_byte_offsets):
-                    if file_byte <= end_byte:
-                        current_layer = i + 1
-                        break
-                else:
-                    # If file_byte is beyond all layers, use the last layer
-                    current_layer = len(end_byte_offsets)
+            layer_count = none_throws(sliced_model_file.layer_count)
+            mode = config.get_m4000_d_field()
 
-            progress = (
-                100.0
-                * none_throws(current_layer - 1)
-                / none_throws(sliced_model_file.layer_count)
-            )
+            if mode in ("ratio_read", "ratio_remaining"):
+                if total_bytes <= 0:
+                    progress = 0.0
+                    current_layer = 1
+                elif current_byte == 0:
+                    progress = 0.0
+                    current_layer = 1
+                else:
+                    if mode == "ratio_read":
+                        progress = min(
+                            100.0,
+                            max(0.0, 100.0 * current_byte / total_bytes),
+                        )
+                    else:
+                        progress = min(
+                            100.0,
+                            max(
+                                0.0,
+                                100.0 * (total_bytes - current_byte) / total_bytes,
+                            ),
+                        )
+                    current_layer = _current_layer_from_ratio_progress(
+                        progress, layer_count
+                    )
+            else:
+                file_byte = _file_byte_for_layer_lookup(
+                    current_byte, total_bytes, print_status.state
+                )
+                if file_byte == 0:
+                    current_layer = 1
+                else:
+                    # Find the layer corresponding to file_byte position (see
+                    # _file_byte_for_layer_lookup for M4000 D: read vs remaining).
+                    current_layer = 1
+                    end_byte_offsets = sliced_model_file.end_byte_offset_by_layer
+                    for i, end_byte in enumerate(end_byte_offsets):
+                        if file_byte <= end_byte:
+                            current_layer = i + 1
+                            break
+                    else:
+                        # If file_byte is beyond all layers, use the last layer
+                        current_layer = len(end_byte_offsets)
+
+                progress = 100.0 * none_throws(current_layer - 1) / layer_count
 
             print_details = {
                 "current_layer": current_layer,

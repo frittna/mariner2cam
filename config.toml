@@ -20,10 +20,11 @@ files_directory = "/mnt/usb_share"
 # multiple printers running multiple instances of mariner.
 #display_name = "Elegoo Mars Pro"
 
-# How M4000 D:<a>/<b>/… line reports progress: "auto" (default), "read" (a =
-# bytes read from the job), or "remaining" (a = bytes left). Use "remaining" if
-# progress sticks near 100% after the first layer.
-#m4000_d_field = "remaining"
+# M4000 D:<a>/<b>/… progress (see mariner config.get_m4000_d_field).
+# If progress is always ~99% with auto/read/remaining, try ratio modes instead:
+#   "ratio_read"       — progress = 100 * <a> / <b>
+#   "ratio_remaining"  — progress = 100 * (<b> - <a>) / <b>
+#m4000_d_field = "ratio_read"
 
 # Serial port settings. Most of the time the default values are fine. This
 # is generally only helpful if you aren't running mariner on a Raspberry Pi
