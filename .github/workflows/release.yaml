@@ -76,6 +76,17 @@ jobs:
               mkdir -p output
               cp /src/*.deb output/ 2>/dev/null || cp /*.deb output/ 2>/dev/null
               test -n "$(ls output/*.deb 2>/dev/null)" || { echo "ERROR: No .deb files produced"; exit 1; }
+              # Fail fast if .deb architecture does not match the build (avoids wrong APT metadata)
+              EXPECT_ARCH=${{ matrix.arch }}
+              for f in output/*.deb; do
+                DEB_ARCH=$(dpkg-deb -f "$f" Architecture)
+                if [ "$DEB_ARCH" != "$EXPECT_ARCH" ]; then
+                  echo "ERROR: $f has Architecture=$DEB_ARCH, expected $EXPECT_ARCH"
+                  exit 1
+                fi
+              done
+              echo "Depends/Pre-Depends (sanity check):"
+              dpkg-deb -f output/mariner3d_*.deb Pre-Depends Depends || true
             '
 
       - name: Upload .deb artifact
