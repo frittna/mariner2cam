@@ -61,6 +61,22 @@ def get_printer_baudrate() -> int:
     return int(printer_config.get("baudrate", default_baudrate))
 
 
+def get_m4000_d_field() -> str:
+    """How to interpret M4000 D:<a>/<b>/… first integer for layer/progress.
+
+    - \"read\": bytes read into the job (offset from start of file data).
+    - \"remaining\": bytes left to print; effective offset is (b - a).
+    - \"auto\": detect from consecutive polls (and first sample after start).
+    """
+    printer_config = _get_config().get("printer")
+    if not isinstance(printer_config, dict):
+        return "auto"
+    mode = printer_config.get("m4000_d_field", "auto")
+    if mode not in ("auto", "read", "remaining"):
+        return "auto"
+    return str(mode)
+
+
 def get_http_host() -> str:
     default_host = "0.0.0.0"
     http_config = _get_config().get("http")

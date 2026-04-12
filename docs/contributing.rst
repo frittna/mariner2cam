@@ -66,7 +66,7 @@ We use `green <https://github.com/CleanCut/green>`_ for running backend tests.
 It is installed by Poetry along with the development dependencies, so you can
 simply run the backend tests with this command::
 
-   $ poetry green
+   $ poetry run green
 
 In addition to running tests, you will want to make sure your code:
 

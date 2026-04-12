@@ -28,6 +28,64 @@ from mariner.server.utils import (
 
 api = Blueprint("api", __name__, url_prefix="/api")
 
+# Tracks M4000 D: first field across HTTP requests so we can tell "bytes read"
+# vs "bytes remaining" firmware (see print_status).
+_m4000_prev: Optional[Tuple[int, int]] = None
+_m4000_interpretation: Optional[str] = None
+
+
+def reset_m4000_d_tracking() -> None:
+    """Clear M4000 D: interpretation state (e.g. between tests)."""
+    global _m4000_prev, _m4000_interpretation
+    _m4000_prev = None
+    _m4000_interpretation = None
+
+
+def _file_byte_for_layer_lookup(
+    current_byte: int,
+    total_bytes: int,
+    state: PrinterState,
+) -> int:
+    """Map M4000 D: first value to a byte offset for end_byte_offset_by_layer."""
+    global _m4000_prev, _m4000_interpretation
+
+    if state in (PrinterState.IDLE, PrinterState.CLOSED) or total_bytes == 0:
+        reset_m4000_d_tracking()
+        return current_byte
+
+    if current_byte == 0:
+        _m4000_prev = (0, total_bytes)
+        return 0
+
+    if _m4000_prev is not None and _m4000_prev[1] != total_bytes:
+        _m4000_interpretation = None
+
+    mode = config.get_m4000_d_field()
+    if mode == "read":
+        file_pos = current_byte
+    elif mode == "remaining":
+        file_pos = total_bytes - current_byte
+    else:
+        prev_cb, prev_tb = _m4000_prev if _m4000_prev else (None, None)
+        if prev_tb == total_bytes and prev_cb is not None:
+            if prev_cb == 0 and current_byte > 0:
+                if current_byte > int(total_bytes * 0.85):
+                    _m4000_interpretation = "remaining"
+                else:
+                    _m4000_interpretation = "read"
+            elif prev_cb > 0:
+                if current_byte < prev_cb:
+                    _m4000_interpretation = "remaining"
+                elif current_byte > prev_cb:
+                    _m4000_interpretation = "read"
+        if _m4000_interpretation == "remaining":
+            file_pos = total_bytes - current_byte
+        else:
+            file_pos = current_byte
+
+    _m4000_prev = (current_byte, total_bytes)
+    return max(0, file_pos)
+
 
 @api.errorhandler(MarinerException)
 def handle_mariner_exception(exception: MarinerException) -> Tuple[Response, int]:
@@ -76,20 +134,24 @@ def print_status() -> Union[str, Response]:
             )
 
             current_byte = print_status.current_byte or 0
-            if current_byte == 0:
+            total_bytes = print_status.total_bytes or 0
+            file_byte = _file_byte_for_layer_lookup(
+                current_byte, total_bytes, print_status.state
+            )
+            if file_byte == 0:
                 current_layer = 1
             else:
-                # Find the layer corresponding to current_byte position
-                # Find the highest layer where the current_byte has been reached
+                # Find the layer corresponding to file_byte position (see
+                # _file_byte_for_layer_lookup for M4000 D: read vs remaining).
                 current_layer = 1
                 end_byte_offsets = sliced_model_file.end_byte_offset_by_layer
                 for i, end_byte in enumerate(end_byte_offsets):
-                    if current_byte >= end_byte:
-                        current_layer = i + 2  # Next layer after this completed one
-                    else:
+                    if file_byte <= end_byte:
+                        current_layer = i + 1
                         break
-                # Ensure we don't exceed the total layer count
-                current_layer = min(current_layer, sliced_model_file.layer_count)
+                else:
+                    # If file_byte is beyond all layers, use the last layer
+                    current_layer = len(end_byte_offsets)
 
             progress = (
                 100.0
