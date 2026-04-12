@@ -274,9 +274,9 @@ class CTBEncryptedFile(SlicedModelFile):
                     + str(int.from_bytes(checksum_hash, "little"))
                 )
 
+            file.seek(ctb_slicer.layer_table_offset)
             LayersPointer = []
             for _ in range(0, ctb_slicer.layer_count):
-                file.seek(ctb_slicer.layer_table_offset)
                 LayersPointer.append(
                     CTBLayerPointer.unpack(file.read(CTBLayerPointer.get_size()))
                 )
@@ -289,9 +289,15 @@ class CTBEncryptedFile(SlicedModelFile):
                     file.read(CTBEncryptedLayerDef.get_size())
                 )
                 LayersDefinition.append(layer_def)
-                end_byte_offset_by_layer.append(
+                enc_end = (
                     layer_def.encrypted_data_offset + layer_def.encrypted_data_length
                 )
+                if enc_end > 0:
+                    end_byte_offset_by_layer.append(enc_end)
+                else:
+                    end_byte_offset_by_layer.append(
+                        layer_def.layer_def_offset + layer_def.data_length
+                    )
 
             return CTBEncryptedFile(
                 filename=path.name,
