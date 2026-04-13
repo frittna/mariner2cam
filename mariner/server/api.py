@@ -1,3 +1,4 @@
+import logging
 import math
 import os
 import traceback
@@ -26,6 +27,8 @@ from mariner.server.utils import (
     retry,
 )
 
+
+logger = logging.getLogger(__name__)
 
 api = Blueprint("api", __name__, url_prefix="/api")
 
@@ -151,6 +154,9 @@ def print_status() -> Union[str, Response]:
             total_bytes = print_status.total_bytes or 0
             layer_count = none_throws(sliced_model_file.layer_count)
             mode = config.get_m4000_d_field()
+            debug_file_byte: Optional[int] = None
+            offsets = sliced_model_file.end_byte_offset_by_layer
+            debug_max_layer_end = offsets[-1] if offsets else None
 
             if mode in ("ratio_read", "ratio_remaining"):
                 if total_bytes <= 0:
@@ -180,6 +186,7 @@ def print_status() -> Union[str, Response]:
                 file_byte = _file_byte_for_layer_lookup(
                     current_byte, total_bytes, print_status.state
                 )
+                debug_file_byte = file_byte
                 if file_byte == 0:
                     current_layer = 1
                 else:
@@ -205,6 +212,31 @@ def print_status() -> Union[str, Response]:
                     sliced_model_file.print_time_secs * (100.0 - progress) / 100.0
                 ),
             }
+
+            if config.get_printer_debug_m4000():
+                auto_interp = _m4000_interpretation if mode == "auto" else None
+                logger.info(
+                    "print_status debug: m4000_d_field=%r state=%s file=%r "
+                    "D=(%s/%s) auto_interpretation=%r file_byte=%s max_layer_end=%s "
+                    "progress=%.3f layer=%s/%s ratio_read=%.3f ratio_remaining=%.3f",
+                    mode,
+                    print_status.state.name,
+                    selected_file,
+                    current_byte,
+                    total_bytes,
+                    auto_interp,
+                    debug_file_byte,
+                    debug_max_layer_end,
+                    progress,
+                    current_layer,
+                    layer_count,
+                    (100.0 * current_byte / total_bytes) if total_bytes else 0.0,
+                    (
+                        (100.0 * (total_bytes - current_byte) / total_bytes)
+                        if total_bytes
+                        else 0.0
+                    ),
+                )
 
         return jsonify(
             {

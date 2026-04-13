@@ -26,6 +26,9 @@ files_directory = "/mnt/usb_share"
 #   "ratio_remaining"  — progress = 100 * (<b> - <a>) / <b>
 #m4000_d_field = "ratio_read"
 
+# Log raw M4000 serial lines and how mariner interprets them (journalctl / stdout).
+#debug_m4000 = false
+
 # Serial port settings. Most of the time the default values are fine. This
 # is generally only helpful if you aren't running mariner on a Raspberry Pi
 # or if you are running with a printer that uses a different baud rate.
