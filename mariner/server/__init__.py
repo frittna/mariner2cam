@@ -59,6 +59,13 @@ class CacheBootstrapper(multiprocessing.Process):
 def main() -> None:
     CacheBootstrapper().start()
 
-    logger = logging.getLogger("waitress")
-    logger.setLevel(logging.INFO)
+    # Global log level applies to mariner.* and waitress output.
+    log_level = getattr(logging, config.get_log_level(), logging.INFO)
+    if not logging.getLogger().handlers:
+        logging.basicConfig(level=log_level)
+    else:
+        logging.getLogger().setLevel(log_level)
+    logging.getLogger("mariner").setLevel(log_level)
+    logging.getLogger("waitress").setLevel(log_level)
+
     serve(flask_app, host=config.get_http_host(), port=config.get_http_port())

@@ -85,8 +85,7 @@ class ChiTuPrinter:
         total_bytes = 0
         if self._is_connected:
             data = self._send_and_read(b"M4000")
-            if config.get_printer_debug_m4000():
-                logger.info("M4000 raw response: %r", data)
+            logger.debug("M4000 raw response: %r", data)
             match = self._extract_response_with_regex(
                 "D:([0-9]+)/([0-9]+)/([0-9]+)", data
             )
@@ -94,13 +93,12 @@ class ChiTuPrinter:
             current_byte = int(match.group(1))
             total_bytes = int(match.group(2))
             is_paused = match.group(3) == "1"
-            if config.get_printer_debug_m4000():
-                logger.info(
-                    "M4000 parsed D: current=%s total=%s paused_flag=%s",
-                    current_byte,
-                    total_bytes,
-                    match.group(3),
-                )
+            logger.debug(
+                "M4000 parsed D: current=%s total=%s paused_flag=%s",
+                current_byte,
+                total_bytes,
+                match.group(3),
+            )
 
             if total_bytes == 0:
                 return PrintStatus(state=PrinterState.IDLE)

@@ -213,30 +213,29 @@ def print_status() -> Union[str, Response]:
                 ),
             }
 
-            if config.get_printer_debug_m4000():
-                auto_interp = _m4000_interpretation if mode == "auto" else None
-                logger.info(
-                    "print_status debug: m4000_d_field=%r state=%s file=%r "
-                    "D=(%s/%s) auto_interpretation=%r file_byte=%s max_layer_end=%s "
-                    "progress=%.3f layer=%s/%s ratio_read=%.3f ratio_remaining=%.3f",
-                    mode,
-                    print_status.state.name,
-                    selected_file,
-                    current_byte,
-                    total_bytes,
-                    auto_interp,
-                    debug_file_byte,
-                    debug_max_layer_end,
-                    progress,
-                    current_layer,
-                    layer_count,
-                    (100.0 * current_byte / total_bytes) if total_bytes else 0.0,
-                    (
-                        (100.0 * (total_bytes - current_byte) / total_bytes)
-                        if total_bytes
-                        else 0.0
-                    ),
-                )
+            auto_interp = _m4000_interpretation if mode == "auto" else None
+            logger.debug(
+                "print_status debug: m4000_d_field=%r state=%s file=%r "
+                "D=(%s/%s) auto_interpretation=%r file_byte=%s max_layer_end=%s "
+                "progress=%.3f layer=%s/%s ratio_read=%.3f ratio_remaining=%.3f",
+                mode,
+                print_status.state.name,
+                selected_file,
+                current_byte,
+                total_bytes,
+                auto_interp,
+                debug_file_byte,
+                debug_max_layer_end,
+                progress,
+                current_layer,
+                layer_count,
+                (100.0 * current_byte / total_bytes) if total_bytes else 0.0,
+                (
+                    (100.0 * (total_bytes - current_byte) / total_bytes)
+                    if total_bytes
+                    else 0.0
+                ),
+            )
 
         return jsonify(
             {

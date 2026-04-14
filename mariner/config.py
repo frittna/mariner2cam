@@ -87,12 +87,14 @@ def get_m4000_d_field() -> str:
     return str(mode)
 
 
-def get_printer_debug_m4000() -> bool:
-    """Log raw M4000 serial lines and print_status interpretation (troubleshooting)."""
-    printer_config = _get_config().get("printer")
-    if not isinstance(printer_config, dict):
-        return False
-    return bool(printer_config.get("debug_m4000", False))
+def get_log_level() -> str:
+    """Global process log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)."""
+    level = _get_config().get("log_level", "INFO")
+    valid = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
+    level_str = str(level).upper()
+    if level_str not in valid:
+        return "INFO"
+    return level_str
 
 
 def get_http_host() -> str:
