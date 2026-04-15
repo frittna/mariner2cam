@@ -101,6 +101,39 @@ class ChiTuPrinterTest(TestCase):
         expect(print_status.current_byte).to_be_none()
         expect(print_status.total_bytes).to_be_none()
 
+    def test_get_print_status_after_ok_keepalive_line(self) -> None:
+        self.serial_port_mock.readline.side_effect = [
+            b"ok\r\n",
+            b"ok B:0/0 X:0.000 Y:0.000 Z:8.233 F:0/0 D:0/0/1 ",
+        ]
+
+        self.printer.open()
+        print_status = self.printer.get_print_status()
+        self.printer.close()
+
+        self.serial_port_mock.write.assert_called_once_with(b"M4000\r\n")
+        expect(print_status.state).to_equal(PrinterState.IDLE)
+        expect(print_status.current_byte).to_be_none()
+        expect(print_status.total_bytes).to_be_none()
+
+    def test_get_print_status_retries_m4000_after_keepalive_only_response(self) -> None:
+        with patch.object(
+            self.printer,
+            "_send_and_read_until_contains",
+            side_effect=[
+                "ok\r\n",
+                "ok B:0/0 X:0.000 Y:0.000 Z:8.233 F:0/0 D:0/0/1 ",
+            ],
+        ) as send_and_read_mock:
+            self.printer.open()
+            print_status = self.printer.get_print_status()
+            self.printer.close()
+
+        expect(send_and_read_mock.call_count).to_equal(2)
+        expect(print_status.state).to_equal(PrinterState.IDLE)
+        expect(print_status.current_byte).to_be_none()
+        expect(print_status.total_bytes).to_be_none()
+
     def test_get_print_status_while_starting_print(self) -> None:
         self.serial_port_mock.readline.return_value = (
             b"ok B:0/0 X:0.000 Y:0.000 Z:-33.421 F:256/256 D:0/11494803/0 "

@@ -1,6 +1,7 @@
 import logging
 import os
 import re
+import time
 from dataclasses import dataclass
 from enum import Enum
 from types import TracebackType
@@ -84,11 +85,21 @@ class ChiTuPrinter:
         current_byte = 0
         total_bytes = 0
         if self._is_connected:
-            data = self._send_and_read(b"M4000")
-            logger.debug("M4000 raw response: %r", data)
-            match = self._extract_response_with_regex(
-                "D:([0-9]+)/([0-9]+)/([0-9]+)", data
-            )
+            match = None
+            data = ""
+            for _ in range(3):
+                data = self._send_and_read_until_contains(
+                    b"M4000",
+                    "D:",
+                    max_readline_attempts=30,
+                    read_timeout_secs=3.0,
+                )
+                logger.debug("M4000 raw response: %r", data)
+                match = re.search("D:([0-9]+)/([0-9]+)/([0-9]+)", data)
+                if match is not None:
+                    break
+            if match is None:
+                raise UnexpectedPrinterResponse(data)
 
             current_byte = int(match.group(1))
             total_bytes = int(match.group(2))
@@ -214,6 +225,37 @@ class ChiTuPrinter:
             self._serial_port.timeout = original_timeout
         # TODO actually read the rest of the response instead of just
         # flushing it like this
+        self._serial_port.read(size=1024)
+        return response
+
+    def _send_and_read_until_contains(
+        self,
+        data: bytes,
+        expected_substring: str,
+        *,
+        max_readline_attempts: int = 20,
+        read_timeout_secs: float = 2.0,
+    ) -> str:
+        self._serial_port.reset_input_buffer()
+        self._serial_port.reset_output_buffer()
+        self._send(data + b"\r\n")
+
+        original_timeout = self._serial_port.timeout
+        self._serial_port.timeout = 0.1
+
+        deadline = time.monotonic() + read_timeout_secs
+        response = ""
+        attempts = 0
+        while attempts < max_readline_attempts and time.monotonic() < deadline:
+            line = self._serial_port.readline().decode("utf-8")
+            attempts += 1
+            if expected_substring in line:
+                response = line
+                break
+            if line:
+                response = line
+
+        self._serial_port.timeout = original_timeout
         self._serial_port.read(size=1024)
         return response
 
