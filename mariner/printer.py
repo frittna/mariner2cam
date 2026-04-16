@@ -12,7 +12,7 @@ import serial
 from mariner import config
 from mariner.exceptions import UnexpectedPrinterResponse
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 class PrinterState(Enum):
