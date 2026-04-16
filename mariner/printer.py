@@ -87,17 +87,26 @@ class ChiTuPrinter:
         if self._is_connected:
             match = None
             data = ""
-            for _ in range(3):
-                data = self._send_and_read_until_contains(
-                    b"M4000",
-                    "D:",
-                    max_readline_attempts=30,
-                    read_timeout_secs=3.0,
+            try:
+                for _ in range(3):
+                    data = self._send_and_read_until_contains(
+                        b"M4000",
+                        "D:",
+                        max_readline_attempts=30,
+                        read_timeout_secs=3.0,
+                    )
+                    logger.debug("M4000 raw response: %r", data)
+                    match = re.search("D:([0-9]+)/([0-9]+)/([0-9]+)", data)
+                    if match is not None:
+                        break
+            except serial.SerialException as exception:
+                logger.warning(
+                    "Serial exception while reading M4000; "
+                    "treating printer as CLOSED. error=%s",
+                    exception,
                 )
-                logger.debug("M4000 raw response: %r", data)
-                match = re.search("D:([0-9]+)/([0-9]+)/([0-9]+)", data)
-                if match is not None:
-                    break
+                self._is_connected = False
+                return PrintStatus(state=PrinterState.CLOSED)
             if match is None:
                 logger.warning(
                     "M4000 returned no parseable status payload; "
@@ -142,7 +151,16 @@ class ChiTuPrinter:
         if not self._is_connected:
             return ""
 
-        data = self._send_and_read(b"M4006")
+        try:
+            data = self._send_and_read(b"M4006")
+        except serial.SerialException as exception:
+            logger.warning(
+                "Serial exception while reading selected file; "
+                "treating printer as disconnected. error=%s",
+                exception,
+            )
+            self._is_connected = False
+            return ""
         selected_file = str(
             self._extract_response_with_regex("ok '([^']+)'\r\n", data).group(1)
         )
