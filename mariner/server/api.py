@@ -20,7 +20,7 @@ from mariner import config
 from mariner.exceptions import MarinerException, UnexpectedPrinterResponse
 from mariner.file_formats import SlicedModelFile
 from mariner.file_formats.utils import get_file_extension, get_supported_extensions
-from mariner.printer import ChiTuPrinter, PrinterState
+from mariner.printer import ChiTuPrinter, PrinterState, PrintStatus
 from mariner.server.utils import (
     read_cached_preview,
     read_cached_sliced_model_file,
@@ -127,17 +127,24 @@ def print_status() -> Union[str, Response]:
         # sometimes we get an unexpected response from the printer (an "ok" instead of
         # the print status we expected). due to this, we retry at most 3 times here
         # until we have a successful response. see issue #180
-        print_status = retry(
-            printer.get_print_status,
-            UnexpectedPrinterResponse,
-            num_retries=3,
-        )
+        try:
+            print_status = retry(
+                printer.get_print_status,
+                UnexpectedPrinterResponse,
+                num_retries=3,
+            )
 
-        selected_file = retry(
-            printer.get_selected_file,
-            UnexpectedPrinterResponse,
-            num_retries=3,
-        )
+            selected_file = retry(
+                printer.get_selected_file,
+                UnexpectedPrinterResponse,
+                num_retries=3,
+            )
+        except UnexpectedPrinterResponse:
+            # Treat repeated bad/empty serial responses as a temporary disconnect
+            # so the UI can keep polling and recover without surfacing a 500.
+            reset_m4000_d_tracking()
+            print_status = PrintStatus(state=PrinterState.CLOSED)
+            selected_file = ""
 
         if (
             print_status.state == PrinterState.IDLE

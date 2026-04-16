@@ -134,6 +134,21 @@ class ChiTuPrinterTest(TestCase):
         expect(print_status.current_byte).to_be_none()
         expect(print_status.total_bytes).to_be_none()
 
+    def test_get_print_status_returns_closed_after_unparseable_responses(self) -> None:
+        with patch.object(
+            self.printer,
+            "_send_and_read_until_contains",
+            side_effect=["", "ok\r\n", ""],
+        ) as send_and_read_mock:
+            self.printer.open()
+            print_status = self.printer.get_print_status()
+            self.printer.close()
+
+        expect(send_and_read_mock.call_count).to_equal(3)
+        expect(print_status.state).to_equal(PrinterState.CLOSED)
+        expect(print_status.current_byte).to_be_none()
+        expect(print_status.total_bytes).to_be_none()
+
     def test_get_print_status_while_starting_print(self) -> None:
         self.serial_port_mock.readline.return_value = (
             b"ok B:0/0 X:0.000 Y:0.000 Z:-33.421 F:256/256 D:0/11494803/0 "

@@ -162,6 +162,18 @@ class MarinerServerTest(TestCase):
             }
         )
 
+    def test_print_status_returns_closed_when_printer_status_unreadable(self) -> None:
+        self.printer_mock.get_print_status.side_effect = UnexpectedPrinterResponse("")
+        response = self.client.get("/api/print_status")
+        expect(response.status_code).to_equal(200)
+        expect(response.get_json()).to_equal(
+            {
+                "state": "CLOSED",
+                "selected_file": "",
+                "progress": 0.0,
+            }
+        )
+
     def test_list_files(self) -> None:
         self.fs.create_dir("/mnt/usb_share/subdir/")
         with freeze_time("2020-03-15"):

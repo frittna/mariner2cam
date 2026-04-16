@@ -99,7 +99,12 @@ class ChiTuPrinter:
                 if match is not None:
                     break
             if match is None:
-                raise UnexpectedPrinterResponse(data)
+                logger.warning(
+                    "M4000 returned no parseable status payload; "
+                    "treating printer as CLOSED. last_response=%r",
+                    data,
+                )
+                return PrintStatus(state=PrinterState.CLOSED)
 
             current_byte = int(match.group(1))
             total_bytes = int(match.group(2))
