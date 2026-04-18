@@ -114,6 +114,14 @@ export const api = {
     });
   },
 
+  async hostShutdown(): Promise<void> {
+    await apiFetch("/api/host/shutdown", { method: "POST" });
+  },
+
+  async hostReboot(): Promise<void> {
+    await apiFetch("/api/host/reboot", { method: "POST" });
+  },
+
   async printerCommand(
     command: "start_print" | "pause_print" | "resume_print" | "cancel_print",
     filename?: string,

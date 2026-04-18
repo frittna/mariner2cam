@@ -1,6 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { Printer, FolderOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PowerMenu } from "@/components/PowerMenu";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 
 const navItems = [
@@ -42,8 +43,9 @@ export function AppNav() {
               </Link>
             );
           })}
-          <div className="ml-1 border-l border-border pl-1">
+          <div className="ml-1 flex items-center gap-0.5 border-l border-border pl-1">
             <ThemeSwitcher />
+            <PowerMenu />
           </div>
         </nav>
       </div>

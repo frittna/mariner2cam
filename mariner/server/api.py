@@ -1,6 +1,7 @@
 import logging
 import math
 import os
+import subprocess
 import traceback
 from enum import Enum
 from typing import Any, Dict, Optional, Tuple, Union
@@ -476,3 +477,17 @@ def printer_command(command: str) -> Union[str, Response]:
         elif printer_command == PrinterCommand.REBOOT:
             printer.reboot()
         return jsonify({"success": True})
+
+
+@api.route("/host/shutdown", methods=["POST"])
+def host_shutdown() -> Union[str, Response]:
+    logger.warning("Host shutdown requested via API")
+    subprocess.Popen(["shutdown", "-h", "now"])
+    return jsonify({"success": True})
+
+
+@api.route("/host/reboot", methods=["POST"])
+def host_reboot() -> Union[str, Response]:
+    logger.warning("Host reboot requested via API")
+    subprocess.Popen(["reboot"])
+    return jsonify({"success": True})
