@@ -238,17 +238,26 @@ class ChiTuPrinterTest(TestCase):
         self.serial_port_mock.write.assert_called_once_with(b"M4006\r\n")
         expect(selected_file).equals("subdir/LittleBBC.ctb")
 
-    def test_get_selected_file_returns_empty_after_serial_exception(self) -> None:
+    def test_get_selected_file_raises_after_serial_exception(self) -> None:
+        # _send_and_read converts SerialException to UnexpectedPrinterResponse
+        # and marks the port disconnected; retry()/api.py turn that into a
+        # CLOSED state. This test locks in the new contract.
         self.serial_port_mock.readline.side_effect = serial.SerialException(
             "device disconnected"
         )
 
         self.printer.open()
-        selected_file = self.printer.get_selected_file()
-        self.printer.close()
+        try:
+            self.printer.get_selected_file()
+            raised = False
+        except UnexpectedPrinterResponse:
+            raised = True
+        finally:
+            self.printer.close()
 
         self.serial_port_mock.write.assert_called_once_with(b"M4006\r\n")
-        expect(selected_file).equals("")
+        expect(raised).to_equal(True)
+        expect(self.printer._is_connected).to_equal(False)
 
     def test_select_file(self) -> None:
         self.serial_port_mock.readline.return_value = (

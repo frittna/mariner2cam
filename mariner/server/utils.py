@@ -1,7 +1,7 @@
 import io
 import os
 import time
-from typing import Callable, Type, TypeVar
+from typing import Callable, Tuple, Type, TypeVar, Union
 
 import png
 from flask_caching import Cache
@@ -41,7 +41,7 @@ TReturn = TypeVar("TReturn")
 
 def retry(
     func: Callable[[], TReturn],
-    exception_type: Type[Exception],
+    exception_type: Union[Type[Exception], Tuple[Type[Exception], ...]],
     *,
     num_retries: int,
     delay_ms: int = 100,

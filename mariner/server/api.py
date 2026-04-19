@@ -6,6 +6,7 @@ import traceback
 from enum import Enum
 from typing import Any, Dict, Optional, Tuple, Union
 
+import serial
 from flask import (
     Blueprint,
     Response,
@@ -128,28 +129,34 @@ def print_status() -> Union[str, Response]:
         # sometimes we get an unexpected response from the printer (an "ok" instead of
         # the print status we expected). due to this, we retry at most 3 times here
         # until we have a successful response. see issue #180
+        transient_errors = (UnexpectedPrinterResponse, serial.SerialException)
         try:
             print_status = retry(
                 printer.get_print_status,
-                UnexpectedPrinterResponse,
+                transient_errors,
                 num_retries=3,
             )
 
             selected_file = retry(
                 printer.get_selected_file,
-                UnexpectedPrinterResponse,
+                transient_errors,
                 num_retries=3,
             )
-        except UnexpectedPrinterResponse:
+        except transient_errors:
             # Treat repeated bad/empty serial responses as a temporary disconnect
             # so the UI can keep polling and recover without surfacing a 500.
             reset_m4000_d_tracking()
             print_status = PrintStatus(state=PrinterState.CLOSED)
             selected_file = ""
 
+        # An empty selected_file means the printer serial call failed or the
+        # board returned no filename — we can't look up layer metadata without
+        # it, so degrade gracefully like IDLE/CLOSED instead of crashing in
+        # read_cached_sliced_model_file's isfile assert.
         if (
             print_status.state == PrinterState.IDLE
             or print_status.state == PrinterState.CLOSED
+            or not selected_file
         ):
             progress = 0.0
             print_details = {}

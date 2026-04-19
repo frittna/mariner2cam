@@ -99,6 +99,11 @@ class ChiTuPrinter:
                     match = re.search("D:([0-9]+)/([0-9]+)/([0-9]+)", data)
                     if match is not None:
                         break
+                    # When the printer is idle with no file loaded, M4000
+                    # replies with just "ok\r\n" — no D: payload. That's a
+                    # successful response, not a disconnect. Stop retrying.
+                    if "ok" in data:
+                        break
             except serial.SerialException as exception:
                 logger.warning(
                     "Serial exception while reading M4000; "
@@ -108,6 +113,8 @@ class ChiTuPrinter:
                 self._is_connected = False
                 return PrintStatus(state=PrinterState.CLOSED)
             if match is None:
+                if "ok" in data:
+                    return PrintStatus(state=PrinterState.IDLE)
                 logger.warning(
                     "M4000 returned no parseable status payload; "
                     "treating printer as CLOSED. last_response=%r",
@@ -151,16 +158,10 @@ class ChiTuPrinter:
         if not self._is_connected:
             return ""
 
-        try:
-            data = self._send_and_read(b"M4006")
-        except serial.SerialException as exception:
-            logger.warning(
-                "Serial exception while reading selected file; "
-                "treating printer as disconnected. error=%s",
-                exception,
-            )
-            self._is_connected = False
-            return ""
+        # SerialException mid-read is now converted to UnexpectedPrinterResponse
+        # by _send_and_read, so it propagates to retry()/api.py which degrades
+        # to CLOSED state — no need to catch it here.
+        data = self._send_and_read(b"M4006")
         selected_file = str(
             self._extract_response_with_regex("ok '([^']+)'\r\n", data).group(1)
         )
@@ -226,30 +227,43 @@ class ChiTuPrinter:
         self._send((f"M6040 I{delay_in_ms}").encode())
 
     def _send_and_read(self, data: bytes, timeout_secs: Optional[float] = None) -> str:
-        self._serial_port.reset_input_buffer()
-        self._serial_port.reset_output_buffer()
+        try:
+            self._serial_port.reset_input_buffer()
+            self._serial_port.reset_output_buffer()
 
-        self._send(data + b"\r\n")
+            self._send(data + b"\r\n")
 
-        original_timeout = self._serial_port.timeout
-        if timeout_secs is not None:
-            self._serial_port.timeout = timeout_secs
-        # A single readline often times out (default 0.1s) before the board
-        # replies, yielding ''. Retrying readline without re-sending avoids
-        # flaky UnexpectedPrinterResponse on /api/print_status and elsewhere.
-        max_empty_line_reads = 15
-        response = ""
-        for _ in range(max_empty_line_reads):
-            line = self._serial_port.readline().decode("utf-8")
-            if line:
-                response = line
-                break
-        if timeout_secs is not None:
-            self._serial_port.timeout = original_timeout
-        # TODO actually read the rest of the response instead of just
-        # flushing it like this
-        self._serial_port.read(size=1024)
-        return response
+            original_timeout = self._serial_port.timeout
+            if timeout_secs is not None:
+                self._serial_port.timeout = timeout_secs
+            # A single readline often times out (default 0.1s) before the board
+            # replies, yielding ''. Retrying readline without re-sending avoids
+            # flaky UnexpectedPrinterResponse on /api/print_status and elsewhere.
+            max_empty_line_reads = 15
+            response = ""
+            for _ in range(max_empty_line_reads):
+                line = self._serial_port.readline().decode("utf-8")
+                if line:
+                    response = line
+                    break
+            if timeout_secs is not None:
+                self._serial_port.timeout = original_timeout
+            # TODO actually read the rest of the response instead of just
+            # flushing it like this
+            self._serial_port.read(size=1024)
+            return response
+        except serial.SerialException as exception:
+            # Cable unplugged / kernel closed the tty mid-read. Mark the port
+            # dead so subsequent calls short-circuit, and surface a typed
+            # error so callers (and retry()) can react.
+            logger.warning(
+                "Serial exception during _send_and_read(%r); "
+                "treating printer as disconnected. error=%s",
+                data,
+                exception,
+            )
+            self._is_connected = False
+            raise UnexpectedPrinterResponse("") from exception
 
     def _send_and_read_until_contains(
         self,
