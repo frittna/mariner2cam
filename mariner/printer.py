@@ -85,6 +85,7 @@ class ChiTuPrinter:
     def get_print_status(self) -> PrintStatus:
         current_byte = 0
         total_bytes = 0
+        z_pos_mm: Optional[float] = None
         if self._is_connected:
             match = None
             data = ""
@@ -126,7 +127,6 @@ class ChiTuPrinter:
             current_byte = int(match.group(1))
             total_bytes = int(match.group(2))
             is_paused = match.group(3) == "1"
-            z_pos_mm: Optional[float] = None
             z_match = re.search(r"Z:(-?[0-9]+\.[0-9]+)", data)
             if z_match is not None:
                 z_pos_mm = float(z_match.group(1))
