@@ -1,10 +1,9 @@
 import logging
-import math
 import os
 import subprocess
 import traceback
 from enum import Enum
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import serial
 from flask import (
@@ -34,11 +33,6 @@ logger: logging.Logger = logging.getLogger(__name__)
 
 api = Blueprint("api", __name__, url_prefix="/api")
 
-# Tracks M4000 D: first field across HTTP requests so we can tell "bytes read"
-# vs "bytes remaining" firmware (see print_status).
-_m4000_prev: Optional[Tuple[int, int]] = None
-_m4000_interpretation: Optional[str] = None
-
 # Monotonic Z-derived layer estimate. Only updated when Z is near an integer
 # multiple of layer_height (exposure phase). During retract the Z reading is
 # meaningless for layer estimation, so we hold the last known value.
@@ -46,11 +40,9 @@ _last_z_layer: Optional[int] = None
 _last_z_total_bytes: Optional[int] = None
 
 
-def reset_m4000_d_tracking() -> None:
-    """Clear M4000 D: interpretation state (e.g. between tests)."""
-    global _m4000_prev, _m4000_interpretation, _last_z_layer, _last_z_total_bytes
-    _m4000_prev = None
-    _m4000_interpretation = None
+def reset_progress_tracking() -> None:
+    """Clear progress tracking state (e.g. between tests)."""
+    global _last_z_layer, _last_z_total_bytes
     _last_z_layer = None
     _last_z_total_bytes = None
 
@@ -89,63 +81,14 @@ def _layer_from_z_position(
     return _last_z_layer
 
 
-def _current_layer_from_ratio_progress(progress: float, layer_count: int) -> int:
-    """Map linear progress percent to a 1-based layer index (ratio_* modes)."""
-    if layer_count <= 0:
+def _layer_from_byte_offset(current_byte: int, end_byte_offsets: List[int]) -> int:
+    """Fallback layer lookup: find first layer whose end-byte covers current_byte."""
+    if current_byte <= 0 or not end_byte_offsets:
         return 1
-    return max(
-        1,
-        min(
-            layer_count,
-            math.ceil(progress / 100.0 * layer_count - 1e-9),
-        ),
-    )
-
-
-def _file_byte_for_layer_lookup(
-    current_byte: int,
-    total_bytes: int,
-    state: PrinterState,
-) -> int:
-    """Map M4000 D: first value to a byte offset for end_byte_offset_by_layer."""
-    global _m4000_prev, _m4000_interpretation
-
-    if state in (PrinterState.IDLE, PrinterState.CLOSED) or total_bytes == 0:
-        reset_m4000_d_tracking()
-        return current_byte
-
-    if current_byte == 0:
-        _m4000_prev = (0, total_bytes)
-        return 0
-
-    if _m4000_prev is not None and _m4000_prev[1] != total_bytes:
-        _m4000_interpretation = None
-
-    mode = config.get_m4000_d_field()
-    if mode == "read":
-        file_pos = current_byte
-    elif mode == "remaining":
-        file_pos = total_bytes - current_byte
-    else:
-        prev_cb, prev_tb = _m4000_prev if _m4000_prev else (None, None)
-        if prev_tb == total_bytes and prev_cb is not None:
-            if prev_cb == 0 and current_byte > 0:
-                if current_byte > int(total_bytes * 0.85):
-                    _m4000_interpretation = "remaining"
-                else:
-                    _m4000_interpretation = "read"
-            elif prev_cb > 0:
-                if current_byte < prev_cb:
-                    _m4000_interpretation = "remaining"
-                elif current_byte > prev_cb:
-                    _m4000_interpretation = "read"
-        if _m4000_interpretation == "remaining":
-            file_pos = total_bytes - current_byte
-        else:
-            file_pos = current_byte
-
-    _m4000_prev = (current_byte, total_bytes)
-    return max(0, file_pos)
+    for i, end_byte in enumerate(end_byte_offsets):
+        if current_byte <= end_byte:
+            return i + 1
+    return len(end_byte_offsets)
 
 
 @api.errorhandler(MarinerException)
@@ -187,7 +130,7 @@ def print_status() -> Union[str, Response]:
         except transient_errors:
             # Treat repeated bad/empty serial responses as a temporary disconnect
             # so the UI can keep polling and recover without surfacing a 500.
-            reset_m4000_d_tracking()
+            reset_progress_tracking()
             print_status = PrintStatus(state=PrinterState.CLOSED)
             selected_file = ""
 
@@ -208,75 +151,30 @@ def print_status() -> Union[str, Response]:
             )
 
             current_byte = print_status.current_byte or 0
-            total_bytes = print_status.total_bytes or 0
             layer_count = none_throws(sliced_model_file.layer_count)
             layer_height_mm = sliced_model_file.layer_height_mm
-            mode = config.get_m4000_d_field()
-            debug_file_byte: Optional[int] = None
-            offsets = sliced_model_file.end_byte_offset_by_layer
-            debug_max_layer_end = offsets[-1] if offsets else None
 
             # Z-derived layer is the ground-truth physical layer. ChiTu D: byte
             # position runs ahead of actual exposure (firmware reads/buffers
-            # layers before exposing them), so prefer Z when we have a valid
-            # exposure-phase reading and the printer is past the pre-print ramp.
+            # layers before exposing them), so Z is preferred; byte offset is
+            # only a fallback for the pre-exposure ramp where Z isn't usable.
             z_layer: Optional[int] = None
             if print_status.state in (PrinterState.PRINTING, PrinterState.PAUSED):
                 z_layer = _layer_from_z_position(
                     print_status.z_pos_mm,
                     layer_height_mm,
                     layer_count,
-                    total_bytes,
+                    print_status.total_bytes or 0,
                 )
 
             if z_layer is not None:
                 current_layer = z_layer
-                progress = 100.0 * (current_layer - 1) / layer_count
-            elif mode in ("ratio_read", "ratio_remaining"):
-                if total_bytes <= 0:
-                    progress = 0.0
-                    current_layer = 1
-                elif current_byte == 0:
-                    progress = 0.0
-                    current_layer = 1
-                else:
-                    if mode == "ratio_read":
-                        progress = min(
-                            100.0,
-                            max(0.0, 100.0 * current_byte / total_bytes),
-                        )
-                    else:
-                        progress = min(
-                            100.0,
-                            max(
-                                0.0,
-                                100.0 * (total_bytes - current_byte) / total_bytes,
-                            ),
-                        )
-                    current_layer = _current_layer_from_ratio_progress(
-                        progress, layer_count
-                    )
             else:
-                file_byte = _file_byte_for_layer_lookup(
-                    current_byte, total_bytes, print_status.state
+                current_layer = _layer_from_byte_offset(
+                    current_byte, sliced_model_file.end_byte_offset_by_layer
                 )
-                debug_file_byte = file_byte
-                if file_byte == 0:
-                    current_layer = 1
-                else:
-                    # Find the layer corresponding to file_byte position (see
-                    # _file_byte_for_layer_lookup for M4000 D: read vs remaining).
-                    current_layer = 1
-                    end_byte_offsets = sliced_model_file.end_byte_offset_by_layer
-                    for i, end_byte in enumerate(end_byte_offsets):
-                        if file_byte <= end_byte:
-                            current_layer = i + 1
-                            break
-                    else:
-                        # If file_byte is beyond all layers, use the last layer
-                        current_layer = len(end_byte_offsets)
 
-                progress = 100.0 * none_throws(current_layer - 1) / layer_count
+            progress = 100.0 * (current_layer - 1) / layer_count
 
             print_details = {
                 "current_layer": current_layer,
@@ -287,31 +185,18 @@ def print_status() -> Union[str, Response]:
                 ),
             }
 
-            auto_interp = _m4000_interpretation if mode == "auto" else None
             logger.debug(
-                "print_status debug: m4000_d_field=%r state=%s file=%r "
-                "D=(%s/%s) z=%s z_layer=%s auto_interpretation=%r "
-                "file_byte=%s max_layer_end=%s progress=%.3f layer=%s/%s "
-                "ratio_read=%.3f ratio_remaining=%.3f",
-                mode,
+                "print_status debug: state=%s file=%r D=(%s/%s) "
+                "z=%s z_layer=%s progress=%.3f layer=%s/%s",
                 print_status.state.name,
                 selected_file,
                 current_byte,
-                total_bytes,
+                print_status.total_bytes,
                 print_status.z_pos_mm,
                 z_layer,
-                auto_interp,
-                debug_file_byte,
-                debug_max_layer_end,
                 progress,
                 current_layer,
                 layer_count,
-                (100.0 * current_byte / total_bytes) if total_bytes else 0.0,
-                (
-                    (100.0 * (total_bytes - current_byte) / total_bytes)
-                    if total_bytes
-                    else 0.0
-                ),
             )
 
         return jsonify(

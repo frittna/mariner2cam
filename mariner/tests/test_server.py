@@ -20,7 +20,7 @@ from mariner.printer import (
     PrinterState,
     PrintStatus,
 )
-from mariner.server.api import reset_m4000_d_tracking
+from mariner.server.api import reset_progress_tracking
 from mariner.server.app import app
 from mariner.server.utils import read_cached_sliced_model_file
 
@@ -80,11 +80,11 @@ class MarinerServerTest(TestCase):
             side_effect=read_cached_sliced_model_file.__wrapped__,
         )
         self._read_ctb_file_patcher.start()
-        reset_m4000_d_tracking()
+        reset_progress_tracking()
 
     def tearDown(self) -> None:
         self.printer_patcher.stop()
-        reset_m4000_d_tracking()
+        reset_progress_tracking()
 
     def test_print_status_while_printing(self) -> None:
         self.printer_mock.get_selected_file.return_value = "foobar.ctb"

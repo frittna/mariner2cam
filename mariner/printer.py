@@ -101,11 +101,6 @@ class ChiTuPrinter:
                     match = re.search("D:([0-9]+)/([0-9]+)/([0-9]+)", data)
                     if match is not None:
                         break
-                    # When the printer is idle with no file loaded, M4000
-                    # replies with just "ok\r\n" — no D: payload. That's a
-                    # successful response, not a disconnect. Stop retrying.
-                    if "ok" in data:
-                        break
             except serial.SerialException as exception:
                 logger.warning(
                     "Serial exception while reading M4000; "

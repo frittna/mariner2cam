@@ -61,32 +61,6 @@ def get_printer_baudrate() -> int:
     return int(printer_config.get("baudrate", default_baudrate))
 
 
-def get_m4000_d_field() -> str:
-    """How to interpret M4000 D:<a>/<b>/… for progress (see print_status).
-
-    File-offset modes (compare <a> to slice file end_byte_offset_by_layer):
-    - \"auto\", \"read\", \"remaining\" — as before.
-
-    Ratio modes (ignore slice byte offsets; use only <a>/<b>):
-    - \"ratio_read\": progress = 100 * <a> / <b>
-    - \"ratio_remaining\": progress = 100 * (<b> - <a>) / <b>
-    Use these when progress is always ~99% with the file-offset modes.
-    """
-    printer_config = _get_config().get("printer")
-    if not isinstance(printer_config, dict):
-        return "auto"
-    mode = printer_config.get("m4000_d_field", "auto")
-    if mode not in (
-        "auto",
-        "read",
-        "remaining",
-        "ratio_read",
-        "ratio_remaining",
-    ):
-        return "auto"
-    return str(mode)
-
-
 def get_log_level() -> str:
     """Global process log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)."""
     level = _get_config().get("log_level", "INFO")
