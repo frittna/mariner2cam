@@ -28,6 +28,7 @@ class PrintStatus:
     state: PrinterState
     current_byte: Optional[int] = None
     total_bytes: Optional[int] = None
+    z_pos_mm: Optional[float] = None
 
 
 class ChiTuPrinter:
@@ -125,11 +126,16 @@ class ChiTuPrinter:
             current_byte = int(match.group(1))
             total_bytes = int(match.group(2))
             is_paused = match.group(3) == "1"
+            z_pos_mm: Optional[float] = None
+            z_match = re.search(r"Z:(-?[0-9]+\.[0-9]+)", data)
+            if z_match is not None:
+                z_pos_mm = float(z_match.group(1))
             logger.debug(
-                "M4000 parsed D: current=%s total=%s paused_flag=%s",
+                "M4000 parsed D: current=%s total=%s paused_flag=%s z=%s",
                 current_byte,
                 total_bytes,
                 match.group(3),
+                z_pos_mm,
             )
 
             if total_bytes == 0:
@@ -148,6 +154,7 @@ class ChiTuPrinter:
             state=state,
             current_byte=current_byte,
             total_bytes=total_bytes,
+            z_pos_mm=z_pos_mm,
         )
 
     def get_z_pos(self) -> float:

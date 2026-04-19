@@ -39,12 +39,54 @@ api = Blueprint("api", __name__, url_prefix="/api")
 _m4000_prev: Optional[Tuple[int, int]] = None
 _m4000_interpretation: Optional[str] = None
 
+# Monotonic Z-derived layer estimate. Only updated when Z is near an integer
+# multiple of layer_height (exposure phase). During retract the Z reading is
+# meaningless for layer estimation, so we hold the last known value.
+_last_z_layer: Optional[int] = None
+_last_z_total_bytes: Optional[int] = None
+
 
 def reset_m4000_d_tracking() -> None:
     """Clear M4000 D: interpretation state (e.g. between tests)."""
-    global _m4000_prev, _m4000_interpretation
+    global _m4000_prev, _m4000_interpretation, _last_z_layer, _last_z_total_bytes
     _m4000_prev = None
     _m4000_interpretation = None
+    _last_z_layer = None
+    _last_z_total_bytes = None
+
+
+def _layer_from_z_position(
+    z_pos_mm: Optional[float],
+    layer_height_mm: float,
+    layer_count: int,
+    total_bytes: int,
+) -> Optional[int]:
+    """Derive current exposed layer from Z. Returns None if Z not in exposure phase.
+
+    MSLA printers retract Z between layers (lift → tilt → descend), so a poll
+    can catch Z mid-retract where Z is not near n*layer_height. In that case
+    we can't infer the layer and the caller should fall back to the last
+    known value.
+    """
+    global _last_z_layer, _last_z_total_bytes
+
+    if _last_z_total_bytes != total_bytes:
+        _last_z_layer = None
+        _last_z_total_bytes = total_bytes
+
+    if z_pos_mm is None or z_pos_mm <= 0 or layer_height_mm <= 0:
+        return _last_z_layer
+
+    layer_float = z_pos_mm / layer_height_mm
+    nearest = round(layer_float)
+    tolerance = 0.1
+    if abs(layer_float - nearest) > tolerance:
+        return _last_z_layer
+
+    layer = max(1, min(layer_count, nearest))
+    if _last_z_layer is None or layer > _last_z_layer:
+        _last_z_layer = layer
+    return _last_z_layer
 
 
 def _current_layer_from_ratio_progress(progress: float, layer_count: int) -> int:
@@ -168,12 +210,29 @@ def print_status() -> Union[str, Response]:
             current_byte = print_status.current_byte or 0
             total_bytes = print_status.total_bytes or 0
             layer_count = none_throws(sliced_model_file.layer_count)
+            layer_height_mm = sliced_model_file.layer_height_mm
             mode = config.get_m4000_d_field()
             debug_file_byte: Optional[int] = None
             offsets = sliced_model_file.end_byte_offset_by_layer
             debug_max_layer_end = offsets[-1] if offsets else None
 
-            if mode in ("ratio_read", "ratio_remaining"):
+            # Z-derived layer is the ground-truth physical layer. ChiTu D: byte
+            # position runs ahead of actual exposure (firmware reads/buffers
+            # layers before exposing them), so prefer Z when we have a valid
+            # exposure-phase reading and the printer is past the pre-print ramp.
+            z_layer: Optional[int] = None
+            if print_status.state in (PrinterState.PRINTING, PrinterState.PAUSED):
+                z_layer = _layer_from_z_position(
+                    print_status.z_pos_mm,
+                    layer_height_mm,
+                    layer_count,
+                    total_bytes,
+                )
+
+            if z_layer is not None:
+                current_layer = z_layer
+                progress = 100.0 * (current_layer - 1) / layer_count
+            elif mode in ("ratio_read", "ratio_remaining"):
                 if total_bytes <= 0:
                     progress = 0.0
                     current_layer = 1
@@ -231,13 +290,16 @@ def print_status() -> Union[str, Response]:
             auto_interp = _m4000_interpretation if mode == "auto" else None
             logger.debug(
                 "print_status debug: m4000_d_field=%r state=%s file=%r "
-                "D=(%s/%s) auto_interpretation=%r file_byte=%s max_layer_end=%s "
-                "progress=%.3f layer=%s/%s ratio_read=%.3f ratio_remaining=%.3f",
+                "D=(%s/%s) z=%s z_layer=%s auto_interpretation=%r "
+                "file_byte=%s max_layer_end=%s progress=%.3f layer=%s/%s "
+                "ratio_read=%.3f ratio_remaining=%.3f",
                 mode,
                 print_status.state.name,
                 selected_file,
                 current_byte,
                 total_bytes,
+                print_status.z_pos_mm,
+                z_layer,
                 auto_interp,
                 debug_file_byte,
                 debug_max_layer_end,
