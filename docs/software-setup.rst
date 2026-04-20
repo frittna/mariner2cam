@@ -90,21 +90,26 @@ The image is also available from GitHub Container Registry:
    port on the host system as described below. Pass the serial device and USB
    share volume into the container.
 
-Automated Raspberry Pi setup
-----------------------------
+Automated setup
+---------------
 
-If you installed Mariner 2 from the apt or dnf repository on a Raspberry Pi,
-the package ships a helper script that performs all of the boot-partition,
-USB gadget, and serial port steps described in the rest of this page:
+The package ships a helper script that performs all of the boot-partition,
+USB gadget, and serial port steps described in the rest of this page.
+It works on **Raspberry Pi OS** and **Armbian**:
 
 .. code-block:: shell-session
 
    $ sudo mariner3d-setup-pi
 
 The script is idempotent — safe to re-run — and backs up each file it edits
-to ``<file>.mariner.bak`` on the first run. It auto-detects your Pi model
-(adding ``dr_mode=peripheral`` where needed) and the boot partition location
-(``/boot`` vs ``/boot/firmware`` on Bookworm and newer).
+to ``<file>.mariner.bak`` on the first run.
+
+On Raspberry Pi OS it auto-detects your Pi model (using ``dr_mode=peripheral``
+where needed) and the boot partition location (``/boot`` vs ``/boot/firmware``
+on Bookworm and newer).
+
+On Armbian it configures ``/boot/armbianEnv.txt`` instead and adds an
+``/etc/fstab`` entry for the USB container file.
 
 Useful flags:
 
@@ -114,16 +119,15 @@ Useful flags:
    $ sudo mariner3d-setup-pi --dry-run     # show changes without applying
    $ sudo mariner3d-setup-pi --help
 
-Once it finishes, reboot the Pi and skip ahead to :doc:`wrapping-up`. The
-remaining sections on this page document the same steps manually, in case you
-prefer to run them yourself or are not on a Raspberry Pi OS image.
+Once it finishes, reboot and skip ahead to :doc:`wrapping-up`. The remaining
+sections on this page document the same steps manually, in case you prefer to
+run them yourself.
 
 .. note::
-   The script installs a ``mariner-usb-gadget.service`` systemd unit that
-   loads the ``g_mass_storage`` module at boot, replacing the legacy
-   ``/etc/rc.local`` approach. If you previously followed the manual
-   instructions, you can remove the ``modprobe g_mass_storage`` line from
-   ``/etc/rc.local`` — the systemd unit handles it now.
+   The package includes a ``mariner-usb-gadget.service`` systemd unit that
+   handles loading ``g_mass_storage`` at boot. If you previously followed the
+   manual instructions and used ``/etc/rc.local``, you can remove the
+   ``modprobe g_mass_storage`` line from it — the unit handles that now.
 
 USB Gadget Setup
 ----------------
@@ -133,72 +137,89 @@ setup the `USB Gadget driver
 <https://www.kernel.org/doc/html/latest/driver-api/usb/gadget.html>`_ as a Mass
 Storage device. This section will guide you through that process.
 
-Enable USB driver for gadget modules by adding this line to
-``/boot/config.txt``:
+Raspberry Pi OS
+~~~~~~~~~~~~~~~
 
-If you are using a Pi Zero W or a Pi 4B add:
+Enable the USB gadget driver by adding a line to ``/boot/config.txt`` (or
+``/boot/firmware/config.txt`` on Bookworm and newer).
+
+For a Pi Zero W or Pi 4B:
 
 .. code-block:: text
 
    dtoverlay=dwc2
 
-If you are using a Pi 3A+, there is a little variant as these supports device
-mode or host mode, but not "true" OTG which is auto-sensing between host and
-device (AKA gadget). So, for the Pi 3A+ you have to add:
+For a Pi 3A+, the port requires explicit peripheral mode since it does not
+support auto-sensing OTG:
 
 .. code-block:: text
 
    dtoverlay=dwc2,dr_mode=peripheral
 
-Enable the dwc2 kernel module, by adding this to your ``/boot/cmdline.txt``
+Enable the dwc2 kernel module by adding the following to ``/boot/cmdline.txt``
 just after ``rootwait``:
 
 .. code-block:: text
 
    modules-load=dwc2
 
-Setup a container file for storing uploaded files, the ``count=`` is in MB,
-use multiples of 1024 to get the number of GBs you want:
+Armbian
+~~~~~~~
+
+Add the overlay and module load to ``/boot/armbianEnv.txt``:
+
+.. code-block:: text
+
+   overlays=dwc2
+   extraargs=modules-load=dwc2
+
+If an ``overlays=`` or ``extraargs=`` line already exists, append the value to
+it rather than adding a duplicate line.
+
+.. note::
+   USB gadget support requires OTG-capable hardware. Not all Armbian boards
+   support ``dwc2`` gadget mode — check your board's documentation.
+
+Container file and mount point
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Create the FAT32 container file that the printer will see as a USB drive.
+The ``count=`` value is in MB; use multiples of 1024 for whole gigabytes:
 
 .. code-block:: shell-session
 
    $ sudo dd bs=1M if=/dev/zero of=/piusb.bin count=2048
    $ sudo mkdosfs /piusb.bin -F 32 -I
 
-Create the mount point for the container file:
+Create the mount point:
 
 .. code-block:: shell-session
 
    $ sudo mkdir -p /mnt/usb_share
 
-Add the following line to your ``/etc/fstab`` so the container file gets
-mounted on boot::
+**Armbian only** — add an ``/etc/fstab`` entry so the container is mounted at
+boot (replace ``<gid>`` with the numeric GID of the ``mariner`` group, which
+you can find with ``getent group mariner | cut -d: -f3``):
 
 .. code-block:: text
 
-   /piusb.bin /mnt/usb_share vfat users,gid=mariner,umask=002 0 2
+   /piusb.bin /mnt/usb_share vfat users,gid=<gid>,umask=002 0 2
 
-Finally, make ``/etc/rc.local`` load the ``g_mass_storage`` module. If that file
-doesn't exist yet, create it with the following contents:
+On Raspberry Pi OS the ``mariner-usb-gadget.service`` unit handles the mount
+via ``losetup`` directly; no fstab entry is needed.
 
-.. code-block:: sh
+Enabling the systemd unit
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
-   #!/bin/sh -e
+The package includes a ``mariner-usb-gadget.service`` unit that runs at boot
+to set up the loop device, mount ``/piusb.bin``, and load ``g_mass_storage``.
+Enable it once:
 
-   modprobe g_mass_storage file=/piusb.bin stall=0 ro=1
+.. code-block:: shell-session
 
-   exit 0
+   $ sudo systemctl enable --now mariner-usb-gadget.service
 
-If the file exists, you should simply add the ``modprobe`` line to it.
-
-.. code-block:: diff
-
-    #!/bin/sh -e
-   +modprobe g_mass_storage file=/piusb.bin stall=0 ro=1
-    exit 0
-
-Once you restart the pi (or potentially run ``sudo mount -a``), the printer
-should start seeing the contents of ``/mnt/usb_share``.
+After a reboot the printer should see the contents of ``/mnt/usb_share``.
 
 Setting up the serial port
 --------------------------

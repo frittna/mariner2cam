@@ -1,3 +1,5 @@
 ../frontend/dist/ opt/venvs/mariner3d
 ../config.toml etc/mariner/
 scripts/mariner3d-setup-pi usr/sbin/
+scripts/gadget-start usr/lib/mariner3d/
+scripts/gadget-stop usr/lib/mariner3d/

@@ -1,0 +1,12 @@
+#!/bin/bash
+set -e
+
+if ! mountpoint -q /mnt/usb_share; then
+    losetup -fP /piusb.bin
+    LOOP=$(losetup -j /piusb.bin | cut -d: -f1)
+    mount -t vfat \
+        -o rw,uid=$(id -u mariner),gid=$(id -g mariner),fmask=0002,dmask=0002 \
+        "$LOOP" /mnt/usb_share
+fi
+
+modprobe g_mass_storage file=/piusb.bin stall=0 ro=1

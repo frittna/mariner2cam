@@ -10,6 +10,15 @@ DEB_DEBIAN_DIR=$(dir $(firstword $(MAKEFILE_LIST)))
 DEB_UPSTREAM_VERSION=$(shell dpkg-parsechangelog -l$(DEB_DEBIAN_DIR)/changelog \
                                | sed -rne 's,^Version: ([^+-]+).*,\1,p')
 
+override_dh_installsystemd:
+	dh_installsystemd
+	dh_installsystemd --name mariner-usb-gadget --no-start
+
+override_dh_fixperms:
+	dh_fixperms
+	chmod 0755 debian/mariner3d/usr/lib/mariner3d/gadget-start
+	chmod 0755 debian/mariner3d/usr/lib/mariner3d/gadget-stop
+
 override_dh_gencontrol:
 	dh_gencontrol -- -Vpython:Depends=
 

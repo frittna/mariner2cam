@@ -1,11 +1,12 @@
 #!/bin/bash
-# mariner3d-setup-pi — one-shot Raspberry Pi configuration for mariner3d.
+# mariner3d-setup-pi — one-shot SBC configuration for mariner3d.
 #
-# Configures the USB gadget (mass storage) and UART serial so the Pi can
+# Configures the USB gadget (mass storage) and UART serial so the board can
 # upload files to, and talk to, the printer's ChiTu mainboard. Idempotent:
 # safe to re-run. All edited files are backed up to *.mariner.bak on first
 # run.
 #
+# Supported platforms: Raspberry Pi OS, Armbian.
 # See https://github.com/amd989/mariner for details.
 
 set -euo pipefail
@@ -13,10 +14,12 @@ set -euo pipefail
 SIZE_MB=2048
 DRY_RUN=0
 FORCE=0
+PLATFORM=
+PI_MODEL=
 
 usage() {
   cat <<'USAGE'
-mariner3d-setup-pi — configure a Raspberry Pi for mariner3d.
+mariner3d-setup-pi — configure a Raspberry Pi or Armbian board for mariner3d.
 
 Usage:
   sudo mariner3d-setup-pi [--size MB] [--dry-run] [--force]
@@ -24,17 +27,26 @@ Usage:
 Options:
   --size MB    Size of /piusb.bin in MB (default: 2048)
   --dry-run    Print what would be done without changing anything
-  --force      Skip Raspberry Pi detection (use at your own risk)
+  --force      Skip platform detection (use at your own risk)
   -h, --help   Show this help
 
-What it does (all steps are idempotent):
+Raspberry Pi — what it does (all steps idempotent):
   - Adds dtoverlay=dwc2 and enable_uart=1 to config.txt
   - Adds modules-load=dwc2 to cmdline.txt after rootwait
   - Removes console=serial0,115200 from cmdline.txt
-  - Creates /piusb.bin (FAT32) as the USB mass-storage backing file
-  - Creates /mnt/usb_share and adds an /etc/fstab entry
-  - Disables the serial-getty@ttyS0 login console
-  - Enables mariner-usb-gadget.service
+  - Disables serial-getty@ttyS0
+  - Creates /piusb.bin (FAT32) and /mnt/usb_share
+  - Enables mariner-usb-gadget.service (handles losetup + mount + modprobe at boot)
+
+Armbian — what it does:
+  - Adds overlays=dwc2 and modules-load=dwc2 to /boot/armbianEnv.txt
+  - Switches console=serial → console=display in armbianEnv.txt
+  - Disables serial-getty@ttyS0 (see note below for non-ttyS0 boards)
+  - Creates /piusb.bin (FAT32), /mnt/usb_share, and an /etc/fstab entry
+  - Enables mariner-usb-gadget.service (fstab handles the mount; unit handles modprobe)
+
+Note: USB gadget support requires OTG-capable hardware. Not all Armbian
+boards support dwc2 gadget mode. Check your board's documentation.
 USAGE
   exit "${1:-0}"
 }
@@ -66,56 +78,45 @@ require_root() {
   fi
 }
 
-detect_pi() {
+detect_platform() {
+  if [ -f /etc/armbian-release ]; then
+    PLATFORM=armbian
+    log "platform: Armbian"
+    # shellcheck source=/dev/null
+    . /etc/armbian-release
+    log "board: ${BOARD_NAME:-unknown} (${BOARDFAMILY:-unknown})"
+    return
+  fi
+
+  if [ -r /proc/device-tree/model ]; then
+    PI_MODEL=$(tr -d '\0' </proc/device-tree/model 2>/dev/null || true)
+    case "$PI_MODEL" in
+      *"Raspberry Pi"*)
+        PLATFORM=rpi
+        log "platform: Raspberry Pi ($PI_MODEL)"
+        return
+        ;;
+    esac
+  fi
+
   if [ "$FORCE" -eq 1 ]; then
-    log "--force: skipping Raspberry Pi detection"
+    log "--force: unknown platform, treating as Raspberry Pi"
+    PLATFORM=rpi
     PI_MODEL="unknown"
     return
   fi
-  if [ ! -r /proc/device-tree/model ]; then
-    echo "cannot read /proc/device-tree/model — this doesn't look like a Raspberry Pi." >&2
-    echo "re-run with --force to proceed anyway." >&2
-    exit 1
-  fi
-  PI_MODEL=$(tr -d '\0' </proc/device-tree/model)
-  case "$PI_MODEL" in
-    *"Raspberry Pi"*) ;;
-    *)
-      echo "device model '$PI_MODEL' is not a Raspberry Pi." >&2
-      echo "re-run with --force to proceed anyway." >&2
-      exit 1
-      ;;
-  esac
-  log "detected: $PI_MODEL"
+
+  echo "unsupported platform — not a Raspberry Pi or Armbian system." >&2
+  echo "re-run with --force to proceed anyway." >&2
+  exit 1
 }
 
-detect_boot_dir() {
-  # Raspberry Pi OS Bookworm+ moved firmware files to /boot/firmware/.
-  if [ -f /boot/firmware/config.txt ]; then
-    BOOT=/boot/firmware
-  elif [ -f /boot/config.txt ]; then
-    BOOT=/boot
-  else
-    echo "cannot find config.txt under /boot or /boot/firmware" >&2
-    exit 1
-  fi
-  log "boot partition: $BOOT"
-}
-
-dtoverlay_line() {
-  # Pi 3A+ needs explicit peripheral mode because dwc2 can't auto-sense OTG
-  # on that board.
-  case "$PI_MODEL" in
-    *"Pi 3 Model A"*)
-      echo "dtoverlay=dwc2,dr_mode=peripheral" ;;
-    *)
-      echo "dtoverlay=dwc2" ;;
-  esac
-}
+# ---------------------------------------------------------------------------
+# Shared utilities
+# ---------------------------------------------------------------------------
 
 backup_once() {
-  local f="$1"
-  local bak="${f}.mariner.bak"
+  local f="$1" bak="${1}.mariner.bak"
   if [ ! -e "$bak" ] && [ -e "$f" ]; then
     run "cp -a '$f' '$bak'"
     log "backed up $f -> $bak"
@@ -133,20 +134,112 @@ ensure_line_in_file() {
   log "added to $(basename "$file"): $line"
 }
 
-configure_config_txt() {
-  local f="$BOOT/config.txt"
-  ensure_line_in_file "$(dtoverlay_line)" "$f"
-  ensure_line_in_file "enable_uart=1" "$f"
+create_piusb_image() {
+  if [ -e /piusb.bin ]; then
+    log "/piusb.bin already exists — leaving as-is"
+    return
+  fi
+  log "creating /piusb.bin (${SIZE_MB} MB)"
+  run "dd if=/dev/zero of=/piusb.bin bs=1M count=$SIZE_MB status=progress"
+  run "mkdosfs /piusb.bin -F 32 -I"
 }
 
-configure_cmdline_txt() {
-  local f="$BOOT/cmdline.txt"
-  if [ ! -f "$f" ]; then
-    echo "$f not found" >&2
+ensure_mount_point() {
+  if [ ! -d /mnt/usb_share ]; then
+    run "mkdir -p /mnt/usb_share"
+    log "created /mnt/usb_share"
+  fi
+}
+
+
+configure_fstab() {
+  local gid line
+  if getent group mariner >/dev/null; then
+    gid=$(getent group mariner | cut -d: -f3)
+  else
+    log "mariner group not found — install mariner3d first, then re-run"
+    return
+  fi
+  line="/piusb.bin /mnt/usb_share vfat users,gid=$gid,umask=002 0 2"
+  if grep -qE '^[[:space:]]*/piusb\.bin[[:space:]]+/mnt/usb_share' /etc/fstab 2>/dev/null; then
+    log "fstab entry for /piusb.bin already present"
+    return
+  fi
+  backup_once /etc/fstab
+  run "printf '%s\n' '$line' >> /etc/fstab"
+  log "added fstab entry for /piusb.bin"
+}
+
+disable_serial_getty() {
+  local unit="${1:-serial-getty@ttyS0.service}"
+  local changed=0
+  if systemctl is-enabled --quiet "$unit" 2>/dev/null; then
+    run "systemctl disable '$unit'"
+    changed=1
+  fi
+  if systemctl is-active --quiet "$unit" 2>/dev/null; then
+    run "systemctl stop '$unit'"
+    changed=1
+  fi
+  if [ "$changed" -eq 1 ]; then
+    log "stopped/disabled $unit"
+  else
+    log "$unit already disabled"
+  fi
+}
+
+enable_usb_gadget_unit() {
+  if ! systemctl list-unit-files mariner-usb-gadget.service >/dev/null 2>&1; then
+    log "mariner-usb-gadget.service not installed — reinstall mariner3d to get it"
+    return
+  fi
+  run "systemctl enable mariner-usb-gadget.service"
+  if [ "$DRY_RUN" -eq 0 ] && [ -e /piusb.bin ]; then
+    systemctl start mariner-usb-gadget.service 2>/dev/null || \
+      log "couldn't start mariner-usb-gadget.service now — a reboot will apply it"
+  fi
+}
+
+# ---------------------------------------------------------------------------
+# Raspberry Pi
+# ---------------------------------------------------------------------------
+
+detect_boot_dir() {
+  # Raspberry Pi OS Bookworm+ moved firmware files to /boot/firmware/.
+  if [ -f /boot/firmware/config.txt ]; then
+    BOOT=/boot/firmware
+  elif [ -f /boot/config.txt ]; then
+    BOOT=/boot
+  else
+    echo "cannot find config.txt under /boot or /boot/firmware" >&2
     exit 1
   fi
+  log "boot partition: $BOOT"
+}
+
+dtoverlay_line() {
+  # Pi 3A+ needs explicit peripheral mode; dwc2 can't auto-sense OTG there.
+  case "$PI_MODEL" in
+    *"Pi 3 Model A"*)
+      echo "dtoverlay=dwc2,dr_mode=peripheral" ;;
+    *)
+      echo "dtoverlay=dwc2" ;;
+  esac
+}
+
+configure_rpi() {
+  detect_boot_dir
+
+  local cfg="$BOOT/config.txt"
+  ensure_line_in_file "$(dtoverlay_line)" "$cfg"
+  ensure_line_in_file "enable_uart=1" "$cfg"
+
+  local cmdline="$BOOT/cmdline.txt"
+  if [ ! -f "$cmdline" ]; then
+    echo "$cmdline not found" >&2; exit 1
+  fi
   local content changed=0
-  content=$(cat "$f")
+  content=$(cat "$cmdline")
 
   if ! printf '%s' "$content" | grep -qw "modules-load=dwc2"; then
     if printf '%s' "$content" | grep -qw "rootwait"; then
@@ -167,89 +260,98 @@ configure_cmdline_txt() {
   fi
 
   if [ "$changed" -eq 1 ]; then
-    backup_once "$f"
+    backup_once "$cmdline"
     if [ "$DRY_RUN" -eq 1 ]; then
-      printf '[dry-run] would write to %s:\n%s\n' "$f" "$content"
+      printf '[dry-run] would write to %s:\n%s\n' "$cmdline" "$content"
     else
-      printf '%s\n' "$content" >"$f"
+      printf '%s\n' "$content" >"$cmdline"
     fi
   fi
+
+  disable_serial_getty "serial-getty@ttyS0.service"
 }
 
-create_piusb_image() {
-  if [ -e /piusb.bin ]; then
-    log "/piusb.bin already exists — leaving as-is"
-    return
-  fi
-  log "creating /piusb.bin (${SIZE_MB} MB)"
-  run "dd if=/dev/zero of=/piusb.bin bs=1M count=$SIZE_MB status=progress"
-  run "mkdosfs /piusb.bin -F 32 -I"
-}
+# ---------------------------------------------------------------------------
+# Armbian
+# ---------------------------------------------------------------------------
 
-ensure_mount_point() {
-  if [ ! -d /mnt/usb_share ]; then
-    run "mkdir -p /mnt/usb_share"
-    log "created /mnt/usb_share"
-  fi
-}
+armbian_env_set_key() {
+  # Idempotently set a key in armbianEnv.txt.
+  # For list-style keys (overlays, extraargs) this appends a value to the
+  # existing entry rather than replacing it.
+  local key="$1" value="$2" file=/boot/armbianEnv.txt list_mode="${3:-0}"
 
-configure_fstab() {
-  local gid line
-  if getent group mariner >/dev/null; then
-    gid=$(getent group mariner | cut -d: -f3)
+  backup_once "$file"
+
+  if grep -qE "^${key}=" "$file"; then
+    if [ "$list_mode" -eq 1 ]; then
+      # Already has the value?
+      if grep -qE "^${key}=.*\b${value}\b" "$file"; then
+        log "already present in armbianEnv.txt: ${key}+=…${value}"
+        return
+      fi
+      run "sed -i -E 's/^(${key}=)(.*)/\1\2 ${value}/' '$file'"
+      log "appended to armbianEnv.txt: ${key}+=${value}"
+    else
+      if grep -qxF "${key}=${value}" "$file"; then
+        log "already present in armbianEnv.txt: ${key}=${value}"
+        return
+      fi
+      run "sed -i -E 's/^${key}=.*/${key}=${value}/' '$file'"
+      log "updated armbianEnv.txt: ${key}=${value}"
+    fi
   else
-    log "mariner group not found — install mariner3d first, then re-run this script"
-    return
+    run "printf '%s=%s\n' '$key' '$value' >> '$file'"
+    log "added to armbianEnv.txt: ${key}=${value}"
   fi
-  line="/piusb.bin /mnt/usb_share vfat users,gid=$gid,umask=002 0 2"
-  if grep -qE '^[[:space:]]*/piusb\.bin[[:space:]]+/mnt/usb_share' /etc/fstab 2>/dev/null; then
-    log "fstab entry for /piusb.bin already present"
-    return
-  fi
-  backup_once /etc/fstab
-  run "printf '%s\n' '$line' >> /etc/fstab"
-  log "added fstab entry for /piusb.bin"
 }
 
-disable_serial_console() {
-  local changed=0
-  if systemctl is-enabled --quiet serial-getty@ttyS0.service 2>/dev/null; then
-    run "systemctl disable serial-getty@ttyS0.service"
-    changed=1
+configure_armbian() {
+  local env=/boot/armbianEnv.txt
+  if [ ! -f "$env" ]; then
+    echo "$env not found — is this an Armbian system?" >&2
+    exit 1
   fi
-  if systemctl is-active --quiet serial-getty@ttyS0.service 2>/dev/null; then
-    run "systemctl stop serial-getty@ttyS0.service"
-    changed=1
-  fi
-  if [ "$changed" -eq 1 ]; then
-    log "stopped/disabled serial-getty@ttyS0"
+
+  # USB gadget overlay + kernel module autoload
+  armbian_env_set_key "overlays"  "dwc2"             1
+  armbian_env_set_key "extraargs" "modules-load=dwc2" 1
+
+  # Switch kernel serial console away from the UART mariner needs.
+  # Only touch it when explicitly set to serial — if absent, Armbian defaults
+  # to display and the UART is already free.
+  if grep -qE '^console=serial' "$env"; then
+    backup_once "$env"
+    run "sed -i 's/^console=serial/console=display/' '$env'"
+    log "switched console=serial → console=display in armbianEnv.txt"
   else
-    log "serial-getty@ttyS0 already disabled"
+    log "armbianEnv.txt console not set to serial — skipping"
   fi
+
+  # ttyS0 is the most common Armbian debug UART. Boards using a different
+  # UART (e.g. ttyAML0 on Amlogic) may need this step done manually.
+  disable_serial_getty "serial-getty@ttyS0.service"
+  log "note: if your board uses a non-ttyS0 debug UART, also run:" \
+      "  systemctl disable --now serial-getty@<your-tty>.service"
+
+  configure_fstab
 }
 
-enable_usb_gadget_unit() {
-  if ! systemctl list-unit-files mariner-usb-gadget.service >/dev/null 2>&1; then
-    log "mariner-usb-gadget.service not installed — reinstall mariner3d to get it"
-    return
-  fi
-  run "systemctl enable mariner-usb-gadget.service"
-  if [ "$DRY_RUN" -eq 0 ] && [ -e /piusb.bin ]; then
-    systemctl start mariner-usb-gadget.service 2>/dev/null || \
-      log "couldn't start mariner-usb-gadget.service now — a reboot will apply it"
-  fi
-}
+# ---------------------------------------------------------------------------
+# Entry point
+# ---------------------------------------------------------------------------
 
 main() {
   require_root
-  detect_pi
-  detect_boot_dir
-  configure_config_txt
-  configure_cmdline_txt
+  detect_platform
+
+  case "$PLATFORM" in
+    rpi)     configure_rpi ;;
+    armbian) configure_armbian ;;
+  esac
+
   create_piusb_image
   ensure_mount_point
-  configure_fstab
-  disable_serial_console
   enable_usb_gadget_unit
   log "done. reboot to apply boot-time changes."
 }

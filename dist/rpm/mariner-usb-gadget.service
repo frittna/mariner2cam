@@ -9,8 +9,8 @@ ConditionPathExists=/piusb.bin
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-ExecStart=/sbin/modprobe g_mass_storage file=/piusb.bin stall=0 ro=1
-ExecStop=/sbin/modprobe -r g_mass_storage
+ExecStart=/usr/lib/mariner3d/gadget-start
+ExecStop=/usr/lib/mariner3d/gadget-stop
 
 [Install]
 WantedBy=multi-user.target

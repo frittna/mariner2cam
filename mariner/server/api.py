@@ -74,6 +74,9 @@ def _layer_from_z_position(
     tolerance = 0.1
     if abs(layer_float - nearest) > tolerance:
         return _last_z_layer
+    # Z above the last layer is a retract lift, not an exposure position.
+    if nearest > layer_count:
+        return _last_z_layer
 
     layer = max(1, min(layer_count, nearest))
     if _last_z_layer is None or layer > _last_z_layer:

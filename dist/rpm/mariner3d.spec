@@ -55,9 +55,13 @@ install -D -m 0644 /build/dist/rpm/mariner3d.service \
 install -D -m 0644 /build/dist/rpm/mariner-usb-gadget.service \
     %{buildroot}%{_unitdir}/mariner-usb-gadget.service
 
-# Install Raspberry Pi setup helper
+# Install Raspberry Pi setup helper and USB gadget scripts
 install -D -m 0755 /build/dist/scripts/mariner3d-setup-pi \
     %{buildroot}%{_sbindir}/mariner3d-setup-pi
+install -D -m 0755 /build/dist/scripts/gadget-start \
+    %{buildroot}%{_prefix}/lib/mariner3d/gadget-start
+install -D -m 0755 /build/dist/scripts/gadget-stop \
+    %{buildroot}%{_prefix}/lib/mariner3d/gadget-stop
 
 # Install default config
 install -D -m 0644 /build/config.toml \
@@ -90,6 +94,9 @@ usermod -aG dialout mariner 2>/dev/null || true
 /opt/venvs/mariner3d/*
 %{_bindir}/mariner
 %{_sbindir}/mariner3d-setup-pi
+%dir %{_prefix}/lib/mariner3d
+%{_prefix}/lib/mariner3d/gadget-start
+%{_prefix}/lib/mariner3d/gadget-stop
 %{_unitdir}/mariner3d.service
 %{_unitdir}/mariner-usb-gadget.service
 %dir %{_sysconfdir}/mariner
