@@ -31,6 +31,10 @@ packages as **bookworm**, so older ``sources.list`` lines that still use
 ``stable`` keep working. **Trixie** machines should use the ``trixie`` suite (or
 re-run ``setup.sh``) so they install the build that matches their Python stack.
 
+Published ``.deb`` files use a Debian revision suffix such as ``+bookworm`` or
+``+trixie`` so the same upstream version can coexist in the repository without
+pool file clashes.
+
 First, enable the repository:
 
 .. code-block:: shell-session
