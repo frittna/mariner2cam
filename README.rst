@@ -4,10 +4,13 @@ it is work in Progress but working based on this tutorial (in german at the mome
 
 Mariner2 3D-Drucker Monitoring Tool - mit Pi Zero W 2 - Trixie 64-bit-lite OS                         Stand: 01.Juni 2026  @frittn
 mit Pi-CSI-Kamera-Support 1296x960 30fps + weitere Maßnahmen für sicheren Betrieb auch online
+There is an outdated Instruction for Zero 1.1 wich was not compatible to this skripts but i sold my Zero 1.1 so its not updated anymore.
+see "Anleitung - Mariner2 - PI Zero W 1.1+2 outdated (ARM6).txt" for Zero 1.1
 
-![](/Screenshot1maxDB.jpg)
-![](/Screenshot2mid_DB.jpg)
-![](/Screenshot3min_FM.jpg)
+Screenshots:
+![](Screenshot1maxDB.jpg)
+![](Screenshot2mid_DB.jpg)
+![](Screenshot3min_FM.jpg)
 
 Github-Code  : Github-Code: https://github.com/frittna/mariner2cam
 Baut auf Code: Github-Code: https://github.com/amd989/mariner
