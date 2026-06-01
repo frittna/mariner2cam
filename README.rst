@@ -5,6 +5,10 @@ it is work in Progress but working based on this tutorial (in german at the mome
 Mariner2 3D-Drucker Monitoring Tool - mit Pi Zero W 2 - Trixie 64-bit-lite OS                         Stand: 01.Juni 2026  @frittn
 mit Pi-CSI-Kamera-Support 1296x960 30fps + weitere Maßnahmen für sicheren Betrieb auch online
 
+![](/Screenshot1maxDB.jpg)
+![](/Screenshot2mid_DB.jpg)
+![](/Screenshot3min_FM.jpg)
+
 Github-Code  : Github-Code: https://github.com/frittna/mariner2cam
 Baut auf Code: Github-Code: https://github.com/amd989/mariner
 Änderungen gibt es hauptsächlich im Mariner Frontend für die Webseite, und der Datei ctb_encrypted.py wegen einem Error beim entschlüsseln der CTB dateien.
