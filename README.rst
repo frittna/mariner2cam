@@ -1,11 +1,14 @@
-Mariner 2 Cam - 3D-Printer Monitoring Tool
-That is a fork from Mariner 2 - https://github.com/amd989/mariner 
+Mariner 2 Cam - 3D-Printer Monitoring Tool with Camera Support + Samba, VPN, Samba, Fail2ban and Webmin
+This is work-in-progress but it is working stable for me. You can run it by following this tutorial (in german at the moment).
+
+Github-Project: https://github.com/frittna/mariner2cam
+this is a fork from Mariner 2 - https://github.com/amd989/mariner 
 what is a fork from Mariner   - https://github.com/luizribeiro/mariner
 
-This is work-in-progress but it is working stable for me. You can run it by following this tutorial (in german at the moment).
---> There is seperate instruction for the Zero 1.1 wich was NOT COMPATIBLE with the automated scripts. But the Zero 1 is to weak at all and i 
-sold it so it is not the same state of progress. If you want to run the Zero1 see "Anleitung - Mariner2 - PI Zero W 1.1+2 outdated (ARM6).txt"
-        ==========   ============   ============   ============   ============   ============   ============   ============
+--> There is seperate instruction for the Zero 1.1 wich was NOT COMPATIBLE with todays automaic scripts. But the Zero 1 is to weak at all and i 
+sold it so it is not the same state of progress. If you want to run on the Zero 1 see "Anleitung - Mariner2 - PI Zero W 1.1+2 outdated (ARM6).txt"
+
+==========   ============   ============   ============   ============   ============   ============   ============   ============
 
 Mariner2Cam 3D-Drucker Monitoring Tool - mit Pi Zero W 2 - Trixie 64-bit-lite OS                        Stand: 01.Juni 2026  @frittn
 mit Pi-CSI-Kamera-Support 1296x960 30fps + weitere Maßnahmen für sicheren Betrieb auch online
@@ -19,9 +22,11 @@ mit Pi-CSI-Kamera-Support 1296x960 30fps + weitere Maßnahmen für sicheren Betr
 .. image:: Screenshot3_print_preview.jpg
    :alt: Grafik1
 
-Github-Code  : Github-Code: https://github.com/frittna/mariner2cam
-Baut auf Code: Github-Code: https://github.com/amd989/mariner
-Änderungen hauptsächlich im Mariner Frontend für die Webseite und der Datei ctb_encrypted.py wegen einem Error beim entschlüsseln der CTB Dateien schon im Quellcode von amd989, vielleicht seit einem Chitubox-update(?)
+Github-Code : Github-Code: https://github.com/frittna/mariner2cam
+geforked von: Github-Code: https://github.com/amd989/mariner
+geforked von: Github-Code: https://github.com/luizribeiro/mariner
+Änderungen hauptsächlich im Mariner Frontend für die Webseite und der Datei ctb_encrypted.py wegen einem Error beim entschlüsseln der 
+CTB Dateien schon im Quellcode von amd989, vielleicht seit einem Chitubox-update(?)
 
 Mein Drucker: Elegoo Mars 3
 HINWEIS: Neue Chitubox .ctb Datein sind so verschlüsselt, dass Mariner recht langsam auf nur einem Core das Vorschaubild lädt. ca.30sek.
