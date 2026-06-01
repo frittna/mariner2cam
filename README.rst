@@ -1,4 +1,4 @@
-Mariner 2 Cam - 3D-Printer Monitoring Tool with Camera Support + Samba, VPN, Samba, Fail2ban and Webmin
+Mariner 2 Cam - 3D-Printer Monitoring Tool with Camera Support + OTG-USB-Gadget, Firewall, VPN, Fail2ban and Webmin installation
 This is work-in-progress but it is working stable for me. You can run it by following this tutorial (in german at the moment).
 
 Github-Project: https://github.com/frittna/mariner2cam
