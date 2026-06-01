@@ -2,8 +2,8 @@ Mariner 2 Cam - 3D-Printer Monitoring Tool
 That is a fork from Mariner 2 - https://github.com/amd989/mariner 
 what is a fork from Mariner   - https://github.com/luizribeiro/mariner
 
-This is a work-in-progress thing but it is working stable for me. You can run it by following this tutorial (in german at the moment)
---> There is seperate instruction for the Zero 1.1 wich was NOT COMPATIBLE with the automated skripts. But the Zero 1 is to weak at all and i 
+This is work-in-progress but it is working stable for me. You can run it by following this tutorial (in german at the moment).
+--> There is seperate instruction for the Zero 1.1 wich was NOT COMPATIBLE with the automated scripts. But the Zero 1 is to weak at all and i 
 sold it so it is not the same state of progress. If you want to run the Zero1 see "Anleitung - Mariner2 - PI Zero W 1.1+2 outdated (ARM6).txt"
         ==========   ============   ============   ============   ============   ============   ============   ============
 
