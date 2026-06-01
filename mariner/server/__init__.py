@@ -68,4 +68,10 @@ def main() -> None:
     logging.getLogger("mariner").setLevel(log_level)
     logging.getLogger("waitress").setLevel(log_level)
 
-    serve(flask_app, host=config.get_http_host(), port=config.get_http_port())
+    flask_app.config['WTF_CSRF_ENABLED'] = False
+    flask_app.config['MAX_CONTENT_LENGTH'] = 1342177280
+    import os
+    os.environ['TMPDIR'] = '/var/tmp'
+
+    serve(flask_app, host=config.get_http_host(), port=config.get_http_port()), max_request_body_size=1342177280)
+    
