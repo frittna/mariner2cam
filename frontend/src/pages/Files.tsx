@@ -96,8 +96,8 @@ export default function Files() {
   };
 
   return (
-    <div className="container py-6">
-      <div className="mb-6 flex items-center justify-between">
+    <div className="container pt-2 pb-2">
+      <div className="mb-2 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">File Manager</h1>
           <p className="text-sm text-muted-foreground">
@@ -131,7 +131,118 @@ export default function Files() {
           </Button>
         </div>
       </div>
+      {/* Mariner2 HD Live Video Stream mit 4-Stage Toggle Control im File Manager */}
+      <div className="cam-wrapper-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '16px', width: '100%' }}>
+ 
+        <div className="cam-control-bar" style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          width: '800px',
+          maxWidth: '100%',
+          backgroundColor: '#111',
+          padding: '6px 12px',
+          borderRadius: '6px 6px 0 0',
+          border: '2px solid #222',
+          borderBottom: 'none',
+          boxSizing: 'border-box',
+          transition: 'width 0.3s ease'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#aaa', fontWeight: 'bold' }}>
+            <span id="fm-led" style={{ 
+              width: '10px', 
+              height: '10px', 
+              borderRadius: '50%', 
+              backgroundColor: '#eab308', 
+              display: 'inline-block',
+              boxShadow: '0 0 8px #eab308',
+              transition: 'background-color 0.3s'
+            }} />
+            <span id="fm-text">Cam: CONNECTING...</span>
+            {isLoading && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: '6px', borderLeft: '1px solid #444', paddingLeft: '10px' }}>
+                <span className="pi-busy-led" style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#3b82f6', display: 'inline-block', boxShadow: '0 0 6px #3b82f6', animation: 'blink-busy 0.2s infinite alternate' }} />
+                <span style={{ fontSize: '11px', color: '#3b82f6', letterSpacing: '0.5px' }}>PI BUSY</span>
+              </div>
+            )}
+            <style>{` @keyframes blink-busy { 0% { opacity: 0.3; } 100% { opacity: 1; } } `}</style>
+          </div>
 
+          <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', alignItems: 'center' }}>
+            <button onClick={(e) => {
+              const bar = e.currentTarget.closest('.cam-control-bar') as HTMLElement;
+              const frame = bar.parentElement.querySelector('.cam-frame-container') as HTMLElement;
+              const btns = e.currentTarget.parentElement.querySelectorAll('button');
+              btns.forEach(b => { b.style.backgroundColor = '#222'; b.style.borderColor = '#444'; });
+              e.currentTarget.style.backgroundColor = '#2563eb'; e.currentTarget.style.borderColor = '#60a5fa';
+              if (bar && frame) { bar.style.width = '1296px'; frame.style.display = 'block'; frame.style.width = '1296px'; bar.style.borderRadius = '6px 6px 0 0'; bar.style.borderBottom = 'none'; }
+            }} style={{ padding: '3px 10px', fontSize: '10px', backgroundColor: '#222', color: '#fff', border: '1px solid #444', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', letterSpacing: '0.5px', transition: 'all 0.2s' }}>MAX</button>
+            <button onClick={(e) => {
+              const bar = e.currentTarget.closest('.cam-control-bar') as HTMLElement;
+              const frame = bar.parentElement.querySelector('.cam-frame-container') as HTMLElement;
+              const btns = e.currentTarget.parentElement.querySelectorAll('button');
+              btns.forEach(b => { b.style.backgroundColor = '#222'; b.style.borderColor = '#444'; });
+              e.currentTarget.style.backgroundColor = '#2563eb'; e.currentTarget.style.borderColor = '#60a5fa';
+              if (bar && frame) { bar.style.width = '800px'; frame.style.display = 'block'; frame.style.width = '800px'; bar.style.borderRadius = '6px 6px 0 0'; bar.style.borderBottom = 'none'; }
+            }} style={{ padding: '3px 10px', fontSize: '10px', backgroundColor: '#2563eb', color: '#fff', border: '1px solid #60a5fa', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', letterSpacing: '0.5px', transition: 'all 0.2s' }}>MID</button>
+            <button onClick={(e) => {
+              const bar = e.currentTarget.closest('.cam-control-bar') as HTMLElement;
+              const frame = bar.parentElement.querySelector('.cam-frame-container') as HTMLElement;
+              const btns = e.currentTarget.parentElement.querySelectorAll('button');
+              btns.forEach(b => { b.style.backgroundColor = '#222'; b.style.borderColor = '#444'; });
+              e.currentTarget.style.backgroundColor = '#2563eb'; e.currentTarget.style.borderColor = '#60a5fa';
+              if (bar && frame) { bar.style.width = '480px'; frame.style.display = 'block'; frame.style.width = '480px'; bar.style.borderRadius = '6px 6px 0 0'; bar.style.borderBottom = 'none'; }
+            }} style={{ padding: '3px 10px', fontSize: '10px', backgroundColor: '#222', color: '#fff', border: '1px solid #444', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', letterSpacing: '0.5px', transition: 'all 0.2s' }}>MIN</button>
+            <button onClick={(e) => {
+              const bar = e.currentTarget.closest('.cam-control-bar') as HTMLElement;
+              const frame = bar.parentElement.querySelector('.cam-frame-container') as HTMLElement;
+              const btns = e.currentTarget.parentElement.querySelectorAll('button');
+              btns.forEach(b => { b.style.backgroundColor = '#222'; b.style.borderColor = '#444'; });
+              e.currentTarget.style.backgroundColor = '#2563eb'; e.currentTarget.style.borderColor = '#60a5fa';
+              if (bar && frame) { bar.style.width = '100%'; frame.style.display = 'none'; bar.style.borderRadius = '6px'; bar.style.borderBottom = '2px solid #222'; }
+            }} style={{ padding: '3px 10px', fontSize: '10px', backgroundColor: '#222', color: '#fff', border: '1px solid #444', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', letterSpacing: '0.5px', transition: 'all 0.2s' }}>HIDE</button>
+          </div>
+        </div>
+
+        <div className="cam-frame-container" style={{
+          width: '800px',
+          maxWidth: '100%', 
+          aspectRatio: '4 / 3', 
+          overflow: 'hidden', 
+          borderRadius: '0 0 8px 8px',
+          border: '2px solid #222',
+          boxShadow: '0 4px 10px rgba(0,0,0,0.5)',
+          backgroundColor: '#000',
+          transition: 'width 0.3s ease'
+        }}>
+          <iframe
+            src={`http://${window.location.hostname}:8889/cam`}
+            title="File Manager Live View"
+            scrolling="no"
+            style={{ width: '100%', height: '100%', border: 'none', display: 'block', overflow: 'hidden' }}
+            onLoad={() => {
+              setTimeout(() => {
+                const led = document.getElementById('fm-led');
+                const text = document.getElementById('fm-text');
+                if (led && text) { 
+                  led.style.backgroundColor = '#22c55e'; 
+                  led.style.boxShadow = '0 0 8px #22c55e'; 
+                  text.textContent = 'Cam: ACTIVE'; 
+                }
+              }, 1500);
+            }}
+            onError={() => {
+              const led = document.getElementById('fm-led');
+              const text = document.getElementById('fm-text');
+              if (led && text) { 
+                led.style.backgroundColor = '#ef4444'; 
+                led.style.boxShadow = '0 0 8px #ef4444'; 
+                text.textContent = 'Cam: OFFLINE'; 
+              }
+            }}
+          />
+        </div>
+      </div>
       <div className="rounded-lg border bg-card">
         {isLoading ? (
           <div className="flex items-center justify-center py-16">
@@ -142,7 +253,6 @@ export default function Files() {
           </div>
         ) : (
           <div className="divide-y">
-            {/* Back button */}
             {currentPath !== "." && (
               <button
                 onClick={() => handleDirectoryClick("..")}
@@ -153,8 +263,6 @@ export default function Files() {
                 <span className="font-medium">..</span>
               </button>
             )}
-
-            {/* Directories */}
             {data?.directories.map((dir: DirectoryEntry) => (
               <button
                 key={dir.dirname}
@@ -165,8 +273,6 @@ export default function Files() {
                 <span className="font-medium">{dir.dirname}</span>
               </button>
             ))}
-
-            {/* Files */}
             {data?.files.map((file: FileEntry) => (
               <button
                 key={file.filename}
@@ -192,15 +298,11 @@ export default function Files() {
                 </div>
               </button>
             ))}
-
-            {/* Empty state */}
-            {data &&
-              data.directories.length === 0 &&
-              data.files.length === 0 && (
-                <div className="py-12 text-center text-sm text-muted-foreground">
-                  No files found in this directory.
-                </div>
-              )}
+            {data && data.directories.length === 0 && data.files.length === 0 && (
+              <div className="py-12 text-center text-sm text-muted-foreground">
+                No files found in this directory.
+              </div>
+            )}
           </div>
         )}
       </div>
