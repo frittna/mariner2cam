@@ -3,19 +3,21 @@ That is a fork from Mariner 2 - https://github.com/amd989/mariner
 what is a fork from Mariner   - https://github.com/luizribeiro/mariner
 
 This is a work-in-progress thing but it is working stable for me. You can run it by following this tutorial (in german at the moment)
-
-  ============   ==========   ============   ============   ============   ============   ============   ============   ============
+--> There is seperate instruction for the Zero 1.1 wich was NOT COMPATIBLE with the automated skripts. But the Zero 1 is to weak at all and i 
+sold it so it is not the same state of progress. If you want to run the Zero1 see "Anleitung - Mariner2 - PI Zero W 1.1+2 outdated (ARM6).txt"
+        ==========   ============   ============   ============   ============   ============   ============   ============
 
 Mariner2Cam 3D-Drucker Monitoring Tool - mit Pi Zero W 2 - Trixie 64-bit-lite OS                        Stand: 01.Juni 2026  @frittn
 mit Pi-CSI-Kamera-Support 1296x960 30fps + weitere Maßnahmen für sicheren Betrieb auch online
 
-->> There is seperate instruction for the Zero 1.1 wich was NOT COMPATIBLE with the automated skripts. But the Zero 1 is to weak at all and i 
-    sold it so it is not the same state of progress. If you want to run the Zero1 see "Anleitung - Mariner2 - PI Zero W 1.1+2 outdated (ARM6).txt"
-
-Screenshots:
-![Maximal-Grafik](Screenshot1maxDB.jpg)
-![Mittlere-Grafik](Screenshot2mid_DB.jpg)
-![Minimal-Grafik](Screenshot3min_FM.jpg)
+.. image:: Screenshot1maxDB.jpg
+   :alt: Grafik1
+.. image:: Screenshot2mid_DB.jpg
+   :alt: Grafik1
+.. image:: Screenshot3min_FM.jpg
+   :alt: Grafik1
+.. image:: Screenshot3_print_preview.jpg
+   :alt: Grafik1
 
 Github-Code  : Github-Code: https://github.com/frittna/mariner2cam
 Baut auf Code: Github-Code: https://github.com/amd989/mariner
