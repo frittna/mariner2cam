@@ -1,4 +1,4 @@
-🛰️ mariner 2 cam  - forked from https://github.com/amd989/mariner
+🛰️ Mariner 2 Cam  - forked from https://github.com/amd989/mariner
 it is work in Progress but is working and based on this tutorial (in german at the moment)
    ========   ============   ============   ============   ============   ============
 
