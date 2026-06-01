@@ -41,33 +41,6 @@ export default function Index() {
       .querySelector('meta[name="printer-display-name"]')
       ?.getAttribute("content") || undefined;
 
-  if (isLoading) {
-    return (
-      <div className="container py-6">
-        <div className="flex flex-col items-center justify-center rounded-lg border bg-card px-6 py-16">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="mt-4 text-sm text-muted-foreground">
-            Connecting to printer...
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="container py-6">
-        <div className="flex flex-col items-center justify-center rounded-lg border border-destructive/20 bg-destructive/5 px-6 py-16">
-          <WifiOff className="h-8 w-8 text-destructive" />
-          <h2 className="mt-4 text-lg font-semibold">Connection Error</h2>
-          <p className="mt-1 text-center text-sm text-muted-foreground">
-            Could not reach the printer. Check that the backend is running.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   const job = data
     ? {
         fileName: data.selected_file || "",
@@ -83,9 +56,8 @@ export default function Index() {
     : null;
 
   return (
-    <div className="container py-6">
-      {/* Header */}
-      <div className="mb-6 flex items-center justify-between">
+    <div className="container pt-2 pb-2">
+      <div className="mb-2 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
             Printer Dashboard
@@ -96,48 +68,205 @@ export default function Index() {
         </div>
         <StatusIndicator status={status} />
       </div>
-
-      {/* Printing / Paused */}
-      {(status === "printing" || status === "paused") && job && (
-        <div className="space-y-6">
-          <div className="rounded-lg border bg-card p-6">
-            <PrintProgress job={job} />
+      {/* Mariner2 HD Live Video Stream mit 4-Stage Toggle Control (MediaMTX) */}
+      <div className="cam-wrapper-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '16px', width: '100%' }}>
+        
+        <div className="cam-control-bar" style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          width: '1296px',
+          maxWidth: '100%',
+          backgroundColor: '#111',
+          padding: '6px 12px',
+          borderRadius: '6px 6px 0 0',
+          border: '2px solid #222',
+          borderBottom: 'none',
+          boxSizing: 'border-box',
+          transition: 'width 0.3s ease'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#aaa', fontWeight: 'bold' }}>
+            <span id="db-led" style={{ 
+              width: '10px', 
+              height: '10px', 
+              borderRadius: '50%', 
+              backgroundColor: '#eab308', 
+              display: 'inline-block',
+              boxShadow: '0 0 8px #eab308',
+              transition: 'background-color 0.3s'
+            }} />
+            <span id="db-text">Cam: CONNECTING...</span>
           </div>
-          <PrintControls
-            status={status}
-            onPause={handlePause}
-            onResume={handleResume}
-            onCancel={handleCancel}
+
+          <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', alignItems: 'center' }}>
+            <button onClick={(e) => {
+              const bar = e.currentTarget.closest('.cam-control-bar') as HTMLElement;
+              const frame = bar.parentElement.querySelector('.cam-frame-container') as HTMLElement;
+              const btns = e.currentTarget.parentElement.querySelectorAll('button');
+              btns.forEach(b => { b.style.backgroundColor = '#222'; b.style.borderColor = '#444'; });
+              e.currentTarget.style.backgroundColor = '#2563eb'; e.currentTarget.style.borderColor = '#60a5fa';
+              if (bar && frame) { bar.style.width = '1296px'; frame.style.display = 'block'; frame.style.width = '1296px'; bar.style.borderRadius = '6px 6px 0 0'; bar.style.borderBottom = 'none'; }
+            }} style={{ padding: '3px 10px', fontSize: '10px', backgroundColor: '#2563eb', color: '#fff', border: '1px solid #60a5fa', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', letterSpacing: '0.5px', transition: 'all 0.2s' }}>MAX</button>
+            <button onClick={(e) => {
+              const bar = e.currentTarget.closest('.cam-control-bar') as HTMLElement;
+              const frame = bar.parentElement.querySelector('.cam-frame-container') as HTMLElement;
+              const btns = e.currentTarget.parentElement.querySelectorAll('button');
+              btns.forEach(b => { b.style.backgroundColor = '#222'; b.style.borderColor = '#444'; });
+              e.currentTarget.style.backgroundColor = '#2563eb'; e.currentTarget.style.borderColor = '#60a5fa';
+              if (bar && frame) { bar.style.width = '800px'; frame.style.display = 'block'; frame.style.width = '800px'; bar.style.borderRadius = '6px 6px 0 0'; bar.style.borderBottom = 'none'; }
+            }} style={{ padding: '3px 10px', fontSize: '10px', backgroundColor: '#222', color: '#fff', border: '1px solid #444', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', letterSpacing: '0.5px', transition: 'all 0.2s' }}>MID</button>
+            <button onClick={(e) => {
+              const bar = e.currentTarget.closest('.cam-control-bar') as HTMLElement;
+              const frame = bar.parentElement.querySelector('.cam-frame-container') as HTMLElement;
+              const btns = e.currentTarget.parentElement.querySelectorAll('button');
+              btns.forEach(b => { b.style.backgroundColor = '#222'; b.style.borderColor = '#444'; });
+              e.currentTarget.style.backgroundColor = '#2563eb'; e.currentTarget.style.borderColor = '#60a5fa';
+              if (bar && frame) { bar.style.width = '480px'; frame.style.display = 'block'; frame.style.width = '480px'; bar.style.borderRadius = '6px 6px 0 0'; bar.style.borderBottom = 'none'; }
+            }} style={{ padding: '3px 10px', fontSize: '10px', backgroundColor: '#222', color: '#fff', border: '1px solid #444', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', letterSpacing: '0.5px', transition: 'all 0.2s' }}>MIN</button>
+            <button onClick={(e) => {
+              const bar = e.currentTarget.closest('.cam-control-bar') as HTMLElement;
+              const frame = bar.parentElement.querySelector('.cam-frame-container') as HTMLElement;
+              const btns = e.currentTarget.parentElement.querySelectorAll('button');
+              btns.forEach(b => { b.style.backgroundColor = '#222'; b.style.borderColor = '#444'; });
+              e.currentTarget.style.backgroundColor = '#2563eb'; e.currentTarget.style.borderColor = '#60a5fa';
+              if (bar && frame) { bar.style.width = '100%'; frame.style.display = 'none'; bar.style.borderRadius = '6px'; bar.style.borderBottom = '2px solid #222'; }
+            }} style={{ padding: '3px 10px', fontSize: '10px', backgroundColor: '#222', color: '#fff', border: '1px solid #444', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', letterSpacing: '0.5px', transition: 'all 0.2s' }}>HIDE</button>
+          </div>
+        </div>
+
+        <div className="cam-frame-container" style={{
+          width: '1296px',
+          maxWidth: '100%',     
+          aspectRatio: '4 / 3', 
+          overflow: 'hidden', 
+          borderRadius: '0 0 8px 8px',
+          border: '2px solid #222',
+          boxShadow: '0 4px 10px rgba(0,0,0,0.5)',
+          backgroundColor: '#000',
+          transition: 'width 0.3s ease'
+        }}>
+          <iframe 
+            src={`http://${window.location.hostname}:8889/cam`}
+            title="Printer Live View"
+            scrolling="no"
+            style={{ width: '100%', height: '100%', border: 'none', display: 'block', overflow: 'hidden' }}
+            onLoad={() => {
+              setTimeout(() => {
+                const led = document.getElementById('db-led');
+                const text = document.getElementById('db-text');
+                if (led && text) { led.style.backgroundColor = '#22c55e'; led.style.boxShadow = '0 0 8px #22c55e'; text.textContent = 'Cam: ACTIVE'; }
+              }, 1500);
+            }}
+            onError={() => {
+              const led = document.getElementById('db-led');
+              const text = document.getElementById('db-text');
+              if (led && text) { led.style.backgroundColor = '#ef4444'; led.style.boxShadow = '0 0 8px #ef4444'; text.textContent = 'Cam: OFFLINE'; }
+            }}
           />
         </div>
-      )}
-
-      {/* Idle */}
-      {status === "idle" && (
-        <div className="flex flex-col items-center justify-center rounded-lg border bg-card px-6 py-16">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-success/10">
-            <CheckCircle2 className="h-8 w-8 text-success" />
+      </div>
+      {/* Mariner2: Dynamische Modell-Vorschau oberhalb des Druckerstatus (Nur wenn gedruckt/pausiert wird) */}
+      {!isLoading && !error && (status === "printing" || status === "paused") && job?.fileName && (
+        <div className="preview-wrapper-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '16px', width: '100%' }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            width: '1296px',
+            maxWidth: '100%',
+            backgroundColor: '#111',
+            padding: '6px 12px',
+            borderRadius: '6px 6px 0 0',
+            border: '2px solid #222',
+            borderBottom: 'none',
+            boxSizing: 'border-box'
+          }}>
+            <div style={{ fontSize: '13px', color: '#aaa', fontWeight: 'bold' }}>
+              Modell-Vorschau: <span style={{ color: '#00b4d8' }}>{job.fileName}</span>
+            </div>
           </div>
-          <h2 className="mt-4 text-lg font-semibold">Ready to Print</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Select a file from the File Manager to start printing.
-          </p>
-          <Button asChild className="mt-4">
-            <Link to="/files">Open File Manager</Link>
-          </Button>
+
+          <div style={{
+            width: '1296px',
+            maxWidth: '100%',     
+            height: '350px', 
+            overflow: 'hidden', 
+            borderRadius: '0 0 8px 8px',
+            border: '2px solid #222',
+            boxShadow: '0 4px 10px rgba(0,0,0,0.5)',
+            backgroundColor: '#111',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center'
+          }}>
+            <img 
+              src={`/api/file_preview/${encodeURIComponent(job.fileName)}`} 
+              alt="3D Modell Vorschau"
+              style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain', display: 'block' }}
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+                const parent = e.currentTarget.parentElement;
+                if (parent) { parent.innerHTML = '<div style="color: #666; font-size: 14px;">Keine Vorschau im Cache verfügbar</div>'; }
+              }}
+            />
+          </div>
         </div>
       )}
 
-      {/* Offline */}
-      {status === "offline" && (
-        <div className="flex flex-col items-center justify-center rounded-lg border border-destructive/20 bg-destructive/5 px-6 py-16">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10">
-            <WifiOff className="h-8 w-8 text-destructive" />
-          </div>
-          <h2 className="mt-4 text-lg font-semibold">Printer Offline</h2>
-          <p className="mt-1 text-center text-sm text-muted-foreground">
-            Unable to connect. Check USB connection and power.
-          </p>
+      {/* Reguläre Drucker-Steuerungskarten werden nur gerendert, wenn kein Verbindungs- oder Ladefehler vorliegt */}
+      {isLoading && (
+        <div className="flex flex-col items-center justify-center rounded-lg border bg-card px-6 py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="mt-4 text-sm text-muted-foreground">Connecting to printer...</p>
+        </div>
+      )}
+
+      {error && (
+        <div className="flex flex-col items-center justify-center rounded-lg border border-destructive/20 bg-destructive/5 px-6 py-12">
+          <WifiOff className="h-8 w-8 text-destructive" />
+          <h2 className="mt-4 text-lg font-semibold">Connection Error</h2>
+          <p className="mt-1 text-center text-sm text-muted-foreground">Could not reach the printer. Check that the backend is running.</p>
+        </div>
+      )}
+
+      {!isLoading && !error && (
+        <div className="mt-6">
+          {(status === "printing" || status === "paused") && job && (
+            <div className="space-y-6">
+              <div className="rounded-lg border bg-card p-6">
+                <PrintProgress job={job} />
+              </div>
+              <PrintControls
+                status={status}
+                onPause={handlePause}
+                onResume={handleResume}
+                onCancel={handleCancel}
+              />
+            </div>
+          )}
+
+          {status === "idle" && (
+            <div className="flex flex-col items-center justify-center rounded-lg border bg-card px-6 py-16">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-success/10">
+                <CheckCircle2 className="h-8 w-8 text-success" />
+              </div>
+              <h2 className="mt-4 text-lg font-semibold">Ready to Print</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Select a file from the File Manager to start printing.</p>
+              <Button asChild className="mt-4">
+                <Link to="/files">Open File Manager</Link>
+              </Button>
+            </div>
+          )}
+
+          {status === "offline" && (
+            <div className="flex flex-col items-center justify-center rounded-lg border border-destructive/20 bg-destructive/5 px-6 py-16">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10">
+                <WifiOff className="h-8 w-8 text-destructive" />
+              </div>
+              <h2 className="mt-4 text-lg font-semibold">Printer Offline</h2>
+              <p className="mt-1 text-center text-sm text-muted-foreground">Unable to connect. Check USB connection and power.</p>
+            </div>
+          )}
         </div>
       )}
     </div>
