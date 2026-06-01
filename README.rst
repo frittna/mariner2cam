@@ -13,9 +13,9 @@ mit Pi-CSI-Kamera-Support 1296x960 30fps + weitere Maßnahmen für sicheren Betr
     sold it so it is not the same state of progress. If you want to run the Zero1 see "Anleitung - Mariner2 - PI Zero W 1.1+2 outdated (ARM6).txt"
 
 Screenshots:
-Screenshot1maxDB.jpg
-Screenshot2mid_DB.jpg
-Screenshot3min_FM.jpg
+![Maximal-Grafik](Screenshot1maxDB.jpg)
+![Mittlere-Grafik](Screenshot2mid_DB.jpg)
+![Minimal-Grafik](Screenshot3min_FM.jpg)
 
 Github-Code  : Github-Code: https://github.com/frittna/mariner2cam
 Baut auf Code: Github-Code: https://github.com/amd989/mariner
