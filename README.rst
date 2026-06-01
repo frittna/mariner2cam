@@ -2,10 +2,10 @@
 it is work in Progress but is working and based on this tutorial (in german at the moment)
    ========   ============   ============   ============   ============   ============
 
-Mariner2Cam 3D-Drucker Monitoring Tool - mit Pi Zero W 2 - Trixie 64-bit-lite OS                         Stand: 01.Juni 2026  @frittn
+Mariner2Cam 3D-Drucker Monitoring Tool - mit Pi Zero W 2 - Trixie 64-bit-lite OS                  Stand: 01.Juni 2026  @frittn
 mit Pi-CSI-Kamera-Support 1296x960 30fps + weitere Maßnahmen für sicheren Betrieb auch online
-There is an outdated Instruction for Zero 1.1 wich was not compatible to this skripts but i sold my Zero 1.1 so its not updated anymore.
-see "Anleitung - Mariner2 - PI Zero W 1.1+2 outdated (ARM6).txt" for Zero 1.1
+There is more primitive Solution for Zero 1.1 wich was NOT COMPATIBLE to these skripts to get it workling but i sold my
+Zero 1.1 so its not updated. See "Anleitung - Mariner2 - PI Zero W 1.1+2 outdated (ARM6).txt" for Zero 1.1 only.
 
 Screenshots:
 Screenshot1maxDB.jpg
