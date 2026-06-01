@@ -8,7 +8,7 @@ what is a fork from Mariner   - https://github.com/luizribeiro/mariner
 --> There is seperate instruction for the Zero 1.1 wich was NOT COMPATIBLE with todays automaic scripts. But the Zero 1 is to weak at all and i 
 sold it so it is not the same state of progress. If you want to run on the Zero 1 see "Anleitung - Mariner2 - PI Zero W 1.1+2 outdated (ARM6).txt"
 
-==========   ============   ============   ============   ============   ============   ============   ============   ============
+  ==========   ============   ============   ============   ============   ============   ============   ============   ============
 
 Mariner2Cam 3D-Drucker Monitoring Tool - mit Pi Zero W 2 - Trixie 64-bit-lite OS                        Stand: 01.Juni 2026  @frittn
 mit Pi-CSI-Kamera-Support 1296x960 30fps + weitere Maßnahmen für sicheren Betrieb auch online
