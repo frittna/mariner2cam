@@ -1,6 +1,6 @@
 🛰️ mariner 2 cam  - forked from https://github.com/amd989/mariner
-it is work in Progress but working based on this tutorial (in german at the moment)
-========   ============   ============   ============   ============   ============
+it is work in Progress but is working and based on this tutorial (in german at the moment)
+   ========   ============   ============   ============   ============   ============
 
 Mariner2Cam 3D-Drucker Monitoring Tool - mit Pi Zero W 2 - Trixie 64-bit-lite OS                         Stand: 01.Juni 2026  @frittn
 mit Pi-CSI-Kamera-Support 1296x960 30fps + weitere Maßnahmen für sicheren Betrieb auch online
