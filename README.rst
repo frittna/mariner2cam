@@ -19,7 +19,7 @@ mit Pi-CSI-Kamera-Support 1296x960 30fps + weitere Maßnahmen für sicheren Betr
    :alt: Grafik1
 .. image:: Screenshot3min_FM.jpg
    :alt: Grafik1
-.. image:: Screenshot3_print_preview.jpg
+.. image:: Screenshot4print_preview.jpg
    :alt: Grafik1
 
 Github-Code : Github-Code: https://github.com/frittna/mariner2cam
