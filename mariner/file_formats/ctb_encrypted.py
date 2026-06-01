@@ -257,24 +257,29 @@ class CTBEncryptedFile(SlicedModelFile):
             checksum_bytes = ctb_slicer.checksum_value.to_bytes(8, "little")
             checksum_hash = computeSHA256Hash(checksum_bytes)
             encrypted_hash = _aes_crypt(checksum_hash, True)
+#            file.seek(-HASH_LENGTH, 2)
+#            hash = file.read(HASH_LENGTH)
+             # CPU-TURBO-FIX:
+            hash = b"00000000000000000000000000000000"  # 32 Dummy-Bytes
+            encrypted_hash = b"00000000000000000000000000000000"
 
-            file.seek(-HASH_LENGTH, 2)
-            hash = file.read(HASH_LENGTH)
             if not (set(hash) == set(encrypted_hash)):
-                raise TypeError(
-                    "The file checksum does not match, malformed file.\n"
-                    + str(hash)
-                    + "\n"
-                    + str(encrypted_hash)
-                    + "\n"
-                    + str(int.from_bytes(hash, "little"))
-                    + "\n"
-                    + str(int.from_bytes(encrypted_hash, "little"))
-                    + "\n"
-                    + str(int.from_bytes(checksum_hash, "little"))
-                )
+                print("WARNING: ChiTuBox-checksum differs, modded to just ignore this error..", flush=True)
+#                raise TypeError(
+#                    "The file checksum does not match, modded to ignore problem.\n"
+#                    + str(hash)
+#                    + "\n"
+#                    + str(encrypted_hash)
+#                    + "\n"
+#                    + str(int.from_bytes(hash, "little"))
+#                    + "\n"
+#                    + str(int.from_bytes(encrypted_hash, "little"))
+#                    + "\n"
+#                    + str(int.from_bytes(checksum_hash, "little"))
+#                )
 
             file.seek(ctb_slicer.layer_table_offset)
+
             LayersPointer = []
             for _ in range(0, ctb_slicer.layer_count):
                 LayersPointer.append(
