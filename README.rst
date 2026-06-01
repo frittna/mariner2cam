@@ -8,9 +8,9 @@ There is an outdated Instruction for Zero 1.1 wich was not compatible to this sk
 see "Anleitung - Mariner2 - PI Zero W 1.1+2 outdated (ARM6).txt" for Zero 1.1
 
 Screenshots:
-![](Screenshot1maxDB.jpg)
-![](Screenshot2mid_DB.jpg)
-![](Screenshot3min_FM.jpg)
+Screenshot1maxDB.jpg
+Screenshot2mid_DB.jpg
+Screenshot3min_FM.jpg
 
 Github-Code  : Github-Code: https://github.com/frittna/mariner2cam
 Baut auf Code: Github-Code: https://github.com/amd989/mariner
