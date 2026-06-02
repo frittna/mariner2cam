@@ -65,3 +65,16 @@ def live_camera_stream():
 
     # Fallback bei Hardware-Timeout
     return b'', 204
+
+# Erlaubt dem Frontend, die Kamera-Last auf dem Pi komplett abzuschalten@app.route('/api/camera/<action>', methods=['POST'])
+@csrf.exempt
+def control_camera(action: str):
+    if action == 'stop':
+        import subprocess
+        subprocess.run(["sudo", "systemctl", "stop", "mediamtx"])
+        return {"status": "Kamera gestoppt, CPU entlastet"}, 200
+    elif action == 'start':
+        import subprocess
+        subprocess.run(["sudo", "systemctl", "start", "mediamtx"])
+        return {"status": "Kamera gestartet"}, 200
+    return {"error": "Ungueltige Aktion"}, 400
