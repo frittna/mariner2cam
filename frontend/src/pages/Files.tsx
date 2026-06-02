@@ -42,18 +42,31 @@ export default function Files() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
   type CamSize = 'MAX' | 'MID' | 'MIN' | 'HIDE';
-  const [camSize, setCamSize] = useState<CamSize>('MAX');
 
-    const handleSizeChange = async (size: CamSize) => {
-    // 1. Visuell im Browser umschalten (Größe anpassen / Iframe unmounten)
+  // 1. Zustand absolut synchron initialisieren
+  const [camSize, setCamSize] = useState<CamSize>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = window.localStorage.getItem('mariner_cam_size_files');
+      if (saved === 'MAX' || saved === 'MID' || saved === 'MIN' || saved === 'HIDE') {
+        return saved as CamSize;
+      }
+    }
+    return 'MIN'; // Absoluter Erststart-Default
+  });
+
+  // 2. Die Klick-Funktion VOR dem Überschreiben schützen
+  const handleSizeChange = async (size: CamSize) => {
+    // Nur aktiv werden, wenn sich die Größe wirklich vom aktuellen Zustand unterscheidet
+    if (size === camSize) return;
+
     setCamSize(size);
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('mariner_cam_size_files', size);
+    }
 
-    // 2. Befehl an das Python-Backend senden, um MediaMTX zu stoppen/starten
     try {
       const action = size === 'HIDE' ? 'stop' : 'start';
-      await fetch(`/api/camera/${action}`, { 
-        method: 'POST' 
-      });
+      await fetch(`/api/camera/${action}`, { method: 'POST' });
     } catch (error) {
       console.error("Fehler beim Umschalten des Kamera-Dienstes im Backend:", error);
     }
@@ -182,7 +195,7 @@ export default function Files() {
       {([ 'MAX', 'MID', 'MIN', 'HIDE' ] as CamSize[]).map((size) => (
         <button
           key={size}
-          onClick={() => setCamSize(size)}
+          onClick={() => handleSizeChange(size)}
           style={{
             padding: '3px 10px',
             fontSize: '10px',
