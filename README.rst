@@ -8,11 +8,6 @@ what is a fork from Mariner   - https://github.com/luizribeiro/mariner
 --> There is seperate instruction for the Zero 1.1 wich was NOT COMPATIBLE with todays automaic scripts. But the Zero 1 is to weak at all and i 
 sold it so it is not the same state of progress. If you want to run on the Zero 1 see "Anleitung - Mariner2 - PI Zero W 1.1+2 outdated (ARM6).txt"
 
-  ==========   ============   ============   ============   ============   ============   ============   ============   
-
-Mariner2Cam 3D-Drucker Monitoring Tool - mit Pi Zero W 2 - Trixie 64-bit-lite OS                        Stand: 01.Juni 2026  @frittn
-mit Pi-CSI-Kamera-Support 1296x960 30fps + weitere Maßnahmen für sicheren Betrieb auch online
-
 .. image:: Screenshot1maxDB.jpg
    :alt: Grafik1
 .. image:: Screenshot2mid_DB.jpg
@@ -22,18 +17,20 @@ mit Pi-CSI-Kamera-Support 1296x960 30fps + weitere Maßnahmen für sicheren Betr
 .. image:: Screenshot4print_preview.jpg
    :alt: Grafik1
 
-Github-Code : Github-Code: https://github.com/frittna/mariner2cam
-geforked von: Github-Code: https://github.com/amd989/mariner
-geforked von: Github-Code: https://github.com/luizribeiro/mariner
-Änderungen hauptsächlich im Mariner Frontend für die Webseite und der Datei ctb_encrypted.py wegen einem Error beim entschlüsseln der 
-CTB Dateien schon im Quellcode von amd989, vielleicht seit einem Chitubox-update(?)
+  ==========   ============   ============   ============   ============   ============   ============   ============   
+
+Mariner2Cam 3D-Drucker Monitoring Tool - mit Pi Zero W 2 - Trixie 64-bit-lite OS                        Stand: 01.Juni 2026  @frittn
+mit Pi-CSI-Kamera-Support 1296x960 30fps + weitere Maßnahmen für sicheren Betrieb auch online
+
+Github-Code  : Github-Code: https://github.com/frittna/mariner2cam
+Baut auf Code: Github-Code: https://github.com/amd989/mariner
+Änderungen gibt es hauptsächlich im Mariner Frontend füpr die Webseite, und der Datei ctb_encrypted.py.
 
 Mein Drucker: Elegoo Mars 3
-HINWEIS: Neue Chitubox .ctb Datein sind so verschlüsselt, dass Mariner recht langsam auf nur einem Core das Vorschaubild lädt. ca.30sek.
-Workaround: mit UVtools die .ctb slice Datei neu abspeichern
+HINWEIS: Neue Chitubox .ctb Datein sind so verschlüsselt, dass Mariner recht langsam auf nur einem Core braucht das Vorschaubild lädt. Workaround: mit UVtools die .ctb sclice Datei neu abspeichern
 
 ###### VORBEREITUNG: (Raspberry Pi Imager Tool für Windows)
-Zero 2 W -> Trixie 64-bit OS-Lite.
+Auf dem Zero 2 W geht Trixie 64-bit OS-Lite.
 
 ##START##
 Bei der Erstellung der SD-Karte (8GB oder mehr) mit Pi Imager und Windows schon SSH-Zugriff einstellen und Wlan-Settings setzen.
@@ -53,7 +50,7 @@ sudo apt update && sudo apt upgrade -y
 
 sudo curl -fsSL https://amd989.github.io/mariner/setup.sh | sudo bash
 sudo apt install mariner3d
-sudo mariner3d-setup-pi --size 1024  #(ohne Argument sind es 2GB, bei 8GB Karte lieber 1 GB nehmen)
+sudo mariner3d-setup-pi --size 1280  #(ohne Argument sind es 2GB, bei 8GB SD-Karte 1280 GB nehmen)
 
 #Da der USB-Gadget also das USB-Laufwerk in Windows nicht gleich angezeigt wird, muss man folgendes in die cmdline.txt hinzufügen:
 sudo nano /boot/firmware/cmdline.txt     #Mit CTRL-O, Enter, CTRL-X speichern:
@@ -67,6 +64,9 @@ sudo nano /boot/firmware/config.txt
 #in diese Datei folgendes kontrollieren oder unter [all] hinzufügen. 
 dtoverlay=dwc2
 enable_uart=1
+dtoverlay=gpio-shutdown,gpio_pin=21,active_low=1,gpio_pull=up,debounce_ms=1000
+#Die letzte Zeile ist nur für einen optionalen Shutdown-Button zwischen PIN40 (GPIO21) & PIN39 (GND) - wer das will
+
 
 # JETZT DIE WICHTIGEN KORREKTUREN:
 #Damit mariner mit ganz aktuellen Chitubox .ctb Dateien keine Probleme hat und stecken bleibt MUSS man 
@@ -197,8 +197,9 @@ sudo mount -o loop,rw,uid=1000,gid=1000,dmask=000,fmask=000 /piusb.bin /mnt/usb_
 sudo modprobe g_mass_storage file=/piusb.bin stall=0 removable=1 idVendor=0x0525 idProduct=0xa4a5 iSerialNumber=123456
 rm /mnt/usb_share/* -rd    ##müll Ordner löschen
 für eine Art Taskmanager in der Konsole gibt es den Befehl:  htop
-#CPU Temperatur < 60°C wäre perfekt:  rpicam-still --version >/dev/null 2>&1; vcgencmd measure_temp
-#laufende CPU-Temp-Überwachung in der Kommandozeie mit:            
+#CPU Temperatur anzeigen, < 60°C wäre perfekt:           rpicam-still --version >/dev/null 2>&1; vcgencmd measure_temp
+#laufende CPU-Temp-Überwachung in der Kommandozeie mit:  watch -n 2 vcgencmd measure_temp
+#Wlan Stärke überprüfen:                                 sudo iwlist wlan0 scan | egrep "ESSID|Signal"
 
 ------------------------------------
 
@@ -320,7 +321,6 @@ sudo systemctl restart mediamtx.service
 
 #NUN AM PC DIE DATEI ÖFFNEN: C:\mariner\frontend\src\pages\Index.tsx und den gesamten Inhalt ersetzen:
 
-
 ######
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { PrintProgress } from "@/components/PrintProgress";
@@ -330,9 +330,12 @@ import { api, mapPrinterState, type PrinterStatus } from "@/lib/api";
 import { WifiOff, CheckCircle2, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { useState } from "react";
 
 export default function Index() {
   const queryClient = useQueryClient();
+type CamSize = 'MAX' | 'MID' | 'MIN' | 'HIDE';
+const [camSize, setCamSize] = useState<CamSize>('MAX');
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["printStatus"],
@@ -394,101 +397,82 @@ export default function Index() {
       </div>
       {/* Mariner2 HD Live Video Stream mit 4-Stage Toggle Control (MediaMTX) */}
       <div className="cam-wrapper-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '16px', width: '100%' }}>
-        
-        <div className="cam-control-bar" style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          width: '1296px',
-          maxWidth: '100%',
-          backgroundColor: '#111',
-          padding: '6px 12px',
-          borderRadius: '6px 6px 0 0',
-          border: '2px solid #222',
-          borderBottom: 'none',
-          boxSizing: 'border-box',
-          transition: 'width 0.3s ease'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#aaa', fontWeight: 'bold' }}>
-            <span id="db-led" style={{ 
-              width: '10px', 
-              height: '10px', 
-              borderRadius: '50%', 
-              backgroundColor: '#eab308', 
-              display: 'inline-block',
-              boxShadow: '0 0 8px #eab308',
-              transition: 'background-color 0.3s'
-            }} />
-            <span id="db-text">Cam: CONNECTING...</span>
-          </div>
+  
+  <div className="cam-control-bar" style={{
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: camSize === 'MAX' ? '1296px' : camSize === 'MID' ? '800px' : camSize === 'MIN' ? '480px' : '100%',
+    maxWidth: '100%',
+    backgroundColor: '#111',
+    padding: '6px 12px',
+    borderRadius: camSize === 'HIDE' ? '6px' : '6px 6px 0 0',
+    border: '2px solid #222',
+    borderBottom: camSize === 'HIDE' ? '2px solid #222' : 'none',
+    boxSizing: 'border-box',
+    transition: 'width 0.3s ease'
+  }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#aaa', fontWeight: 'bold' }}>
+      <span id="db-led" style={{ 
+        width: '10px', 
+        height: '10px', 
+        borderRadius: '50%', 
+        backgroundColor: camSize === 'HIDE' ? '#64748b' : '#22c55e', 
+        display: 'inline-block',
+        boxShadow: camSize === 'HIDE' ? 'none' : '0 0 8px #22c55e',
+        transition: 'background-color 0.3s'
+      }} />
+      <span id="db-text">{camSize === 'HIDE' ? 'Cam: DEACTIVATED' : 'Cam: ACTIVE'}</span>
+    </div>
 
-          <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', alignItems: 'center' }}>
-            <button onClick={(e) => {
-              const bar = e.currentTarget.closest('.cam-control-bar') as HTMLElement;
-              const frame = bar.parentElement.querySelector('.cam-frame-container') as HTMLElement;
-              const btns = e.currentTarget.parentElement.querySelectorAll('button');
-              btns.forEach(b => { b.style.backgroundColor = '#222'; b.style.borderColor = '#444'; });
-              e.currentTarget.style.backgroundColor = '#2563eb'; e.currentTarget.style.borderColor = '#60a5fa';
-              if (bar && frame) { bar.style.width = '1296px'; frame.style.display = 'block'; frame.style.width = '1296px'; bar.style.borderRadius = '6px 6px 0 0'; bar.style.borderBottom = 'none'; }
-            }} style={{ padding: '3px 10px', fontSize: '10px', backgroundColor: '#2563eb', color: '#fff', border: '1px solid #60a5fa', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', letterSpacing: '0.5px', transition: 'all 0.2s' }}>MAX</button>
-            <button onClick={(e) => {
-              const bar = e.currentTarget.closest('.cam-control-bar') as HTMLElement;
-              const frame = bar.parentElement.querySelector('.cam-frame-container') as HTMLElement;
-              const btns = e.currentTarget.parentElement.querySelectorAll('button');
-              btns.forEach(b => { b.style.backgroundColor = '#222'; b.style.borderColor = '#444'; });
-              e.currentTarget.style.backgroundColor = '#2563eb'; e.currentTarget.style.borderColor = '#60a5fa';
-              if (bar && frame) { bar.style.width = '800px'; frame.style.display = 'block'; frame.style.width = '800px'; bar.style.borderRadius = '6px 6px 0 0'; bar.style.borderBottom = 'none'; }
-            }} style={{ padding: '3px 10px', fontSize: '10px', backgroundColor: '#222', color: '#fff', border: '1px solid #444', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', letterSpacing: '0.5px', transition: 'all 0.2s' }}>MID</button>
-            <button onClick={(e) => {
-              const bar = e.currentTarget.closest('.cam-control-bar') as HTMLElement;
-              const frame = bar.parentElement.querySelector('.cam-frame-container') as HTMLElement;
-              const btns = e.currentTarget.parentElement.querySelectorAll('button');
-              btns.forEach(b => { b.style.backgroundColor = '#222'; b.style.borderColor = '#444'; });
-              e.currentTarget.style.backgroundColor = '#2563eb'; e.currentTarget.style.borderColor = '#60a5fa';
-              if (bar && frame) { bar.style.width = '480px'; frame.style.display = 'block'; frame.style.width = '480px'; bar.style.borderRadius = '6px 6px 0 0'; bar.style.borderBottom = 'none'; }
-            }} style={{ padding: '3px 10px', fontSize: '10px', backgroundColor: '#222', color: '#fff', border: '1px solid #444', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', letterSpacing: '0.5px', transition: 'all 0.2s' }}>MIN</button>
-            <button onClick={(e) => {
-              const bar = e.currentTarget.closest('.cam-control-bar') as HTMLElement;
-              const frame = bar.parentElement.querySelector('.cam-frame-container') as HTMLElement;
-              const btns = e.currentTarget.parentElement.querySelectorAll('button');
-              btns.forEach(b => { b.style.backgroundColor = '#222'; b.style.borderColor = '#444'; });
-              e.currentTarget.style.backgroundColor = '#2563eb'; e.currentTarget.style.borderColor = '#60a5fa';
-              if (bar && frame) { bar.style.width = '100%'; frame.style.display = 'none'; bar.style.borderRadius = '6px'; bar.style.borderBottom = '2px solid #222'; }
-            }} style={{ padding: '3px 10px', fontSize: '10px', backgroundColor: '#222', color: '#fff', border: '1px solid #444', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', letterSpacing: '0.5px', transition: 'all 0.2s' }}>HIDE</button>
-          </div>
-        </div>
+    <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', alignItems: 'center' }}>
+      {(['MAX', 'MID', 'MIN', 'HIDE'] as CamSize[]).map((size) => (
+        <button
+          key={size}
+          onClick={() => setCamSize(size)}
+          style={{
+            padding: '3px 10px',
+            fontSize: '10px',
+            backgroundColor: camSize === size ? '#2563eb' : '#222',
+            color: '#fff',
+            border: camSize === size ? '1px solid #60a5fa' : '1px solid #444',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontWeight: 'bold',
+            letterSpacing: '0.5px',
+            transition: 'all 0.2s'
+          }}
+        >
+          {size}
+        </button>
+      ))}
+    </div>
+  </div>
 
-        <div className="cam-frame-container" style={{
-          width: '1296px',
-          maxWidth: '100%',     
-          aspectRatio: '4 / 3', 
-          overflow: 'hidden', 
-          borderRadius: '0 0 8px 8px',
-          border: '2px solid #222',
-          boxShadow: '0 4px 10px rgba(0,0,0,0.5)',
-          backgroundColor: '#000',
-          transition: 'width 0.3s ease'
-        }}>
-          <iframe 
-            src={`http://${window.location.hostname}:8889/cam`}
-            title="Printer Live View"
-            scrolling="no"
-            style={{ width: '100%', height: '100%', border: 'none', display: 'block', overflow: 'hidden' }}
-            onLoad={() => {
-              setTimeout(() => {
-                const led = document.getElementById('db-led');
-                const text = document.getElementById('db-text');
-                if (led && text) { led.style.backgroundColor = '#22c55e'; led.style.boxShadow = '0 0 8px #22c55e'; text.textContent = 'Cam: ACTIVE'; }
-              }, 1500);
-            }}
-            onError={() => {
-              const led = document.getElementById('db-led');
-              const text = document.getElementById('db-text');
-              if (led && text) { led.style.backgroundColor = '#ef4444'; led.style.boxShadow = '0 0 8px #ef4444'; text.textContent = 'Cam: OFFLINE'; }
-            }}
-          />
-        </div>
-      </div>
+  {/* Last-Stopp Logik: Wenn camSize 'HIDE' ist, wird das iframe komplett gelöscht */}
+  {camSize !== 'HIDE' && (
+    <div className="cam-frame-container" style={{
+      width: camSize === 'MAX' ? '1296px' : camSize === 'MID' ? '800px' : '480px',
+      maxWidth: '100%',     
+      aspectRatio: '4 / 3', 
+      overflow: 'hidden', 
+      borderRadius: '0 0 8px 8px',
+      border: '2px solid #222',
+      boxShadow: '0 4px 10px rgba(0,0,0,0.5)',
+      backgroundColor: '#000',
+      transition: 'width 0.3s ease'
+    }}>
+      <iframe 
+        src={typeof window !== 'undefined' ? `http://${window.location.hostname}:8889/cam` : ''}
+        title="Printer Live View"
+        scrolling="no"
+        style={{ width: '100%', height: '100%', border: 'none', display: 'block', overflow: 'hidden' }}
+      />
+    </div>
+  )}
+</div>
+
+
       {/* Mariner2: Dynamische Modell-Vorschau oberhalb des Druckerstatus (Nur wenn gedruckt/pausiert wird) */}
       {!isLoading && !error && (status === "printing" || status === "paused") && job?.fileName && (
         <div className="preview-wrapper-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '16px', width: '100%' }}>
@@ -597,9 +581,16 @@ export default function Index() {
   );
 }
 #####
+#####
+#####
+#####
 
-DAS SELBE AM PC MIT DER DATEI : C:\mariner\frontend\src\pages\Files.tsx machen und alles ersetztn.
+DAS SELBE AM PC MIT DER DATEI : C:\mariner\frontend\src\pages\Files.tsx machen und alles ersetzten.
 
+#####
+#####
+#####
+#####
 #####
 
 import { useState, useRef, useEffect } from "react";
@@ -645,6 +636,8 @@ export default function Files() {
   const [newFolderName, setNewFolderName] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
+  type CamSize = 'MAX' | 'MID' | 'MIN' | 'HIDE';
+  const [camSize, setCamSize] = useState<CamSize>('MAX');
 
   const { data, isLoading } = useQuery({
     queryKey: ["files", currentPath],
@@ -737,116 +730,81 @@ export default function Files() {
       </div>
       {/* Mariner2 HD Live Video Stream mit 4-Stage Toggle Control im File Manager */}
       <div className="cam-wrapper-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '16px', width: '100%' }}>
- 
-        <div className="cam-control-bar" style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          width: '800px',
-          maxWidth: '100%',
-          backgroundColor: '#111',
-          padding: '6px 12px',
-          borderRadius: '6px 6px 0 0',
-          border: '2px solid #222',
-          borderBottom: 'none',
-          boxSizing: 'border-box',
-          transition: 'width 0.3s ease'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#aaa', fontWeight: 'bold' }}>
-            <span id="fm-led" style={{ 
-              width: '10px', 
-              height: '10px', 
-              borderRadius: '50%', 
-              backgroundColor: '#eab308', 
-              display: 'inline-block',
-              boxShadow: '0 0 8px #eab308',
-              transition: 'background-color 0.3s'
-            }} />
-            <span id="fm-text">Cam: CONNECTING...</span>
-            {isLoading && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: '6px', borderLeft: '1px solid #444', paddingLeft: '10px' }}>
-                <span className="pi-busy-led" style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#3b82f6', display: 'inline-block', boxShadow: '0 0 6px #3b82f6', animation: 'blink-busy 0.2s infinite alternate' }} />
-                <span style={{ fontSize: '11px', color: '#3b82f6', letterSpacing: '0.5px' }}>PI BUSY</span>
-              </div>
-            )}
-            <style>{` @keyframes blink-busy { 0% { opacity: 0.3; } 100% { opacity: 1; } } `}</style>
-          </div>
+  
+  <div className="cam-control-bar" style={{
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: camSize === 'MAX' ? '1296px' : camSize === 'MID' ? '800px' : camSize === 'MIN' ? '480px' : '100%',
+    maxWidth: '100%',
+    backgroundColor: '#111',
+    padding: '6px 12px',
+    borderRadius: camSize === 'HIDE' ? '6px' : '6px 6px 0 0',
+    border: '2px solid #222',
+    borderBottom: camSize === 'HIDE' ? '2px solid #222' : 'none',
+    boxSizing: 'border-box',
+    transition: 'width 0.3s ease'
+  }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#aaa', fontWeight: 'bold' }}>
+      <span id="files-led" style={{ 
+        width: '10px', 
+        height: '10px', 
+        borderRadius: '50%', 
+        backgroundColor: camSize === 'HIDE' ? '#64748b' : '#22c55e', 
+        display: 'inline-block',
+        boxShadow: camSize === 'HIDE' ? 'none' : '0 0 8px #22c55e',
+        transition: 'background-color 0.3s'
+      }} />
+      <span id="files-text">{camSize === 'HIDE' ? 'Cam: DEACTIVATED' : 'Cam: ACTIVE'}</span>
+    </div>
 
-          <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', alignItems: 'center' }}>
-            <button onClick={(e) => {
-              const bar = e.currentTarget.closest('.cam-control-bar') as HTMLElement;
-              const frame = bar.parentElement.querySelector('.cam-frame-container') as HTMLElement;
-              const btns = e.currentTarget.parentElement.querySelectorAll('button');
-              btns.forEach(b => { b.style.backgroundColor = '#222'; b.style.borderColor = '#444'; });
-              e.currentTarget.style.backgroundColor = '#2563eb'; e.currentTarget.style.borderColor = '#60a5fa';
-              if (bar && frame) { bar.style.width = '1296px'; frame.style.display = 'block'; frame.style.width = '1296px'; bar.style.borderRadius = '6px 6px 0 0'; bar.style.borderBottom = 'none'; }
-            }} style={{ padding: '3px 10px', fontSize: '10px', backgroundColor: '#222', color: '#fff', border: '1px solid #444', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', letterSpacing: '0.5px', transition: 'all 0.2s' }}>MAX</button>
-            <button onClick={(e) => {
-              const bar = e.currentTarget.closest('.cam-control-bar') as HTMLElement;
-              const frame = bar.parentElement.querySelector('.cam-frame-container') as HTMLElement;
-              const btns = e.currentTarget.parentElement.querySelectorAll('button');
-              btns.forEach(b => { b.style.backgroundColor = '#222'; b.style.borderColor = '#444'; });
-              e.currentTarget.style.backgroundColor = '#2563eb'; e.currentTarget.style.borderColor = '#60a5fa';
-              if (bar && frame) { bar.style.width = '800px'; frame.style.display = 'block'; frame.style.width = '800px'; bar.style.borderRadius = '6px 6px 0 0'; bar.style.borderBottom = 'none'; }
-            }} style={{ padding: '3px 10px', fontSize: '10px', backgroundColor: '#2563eb', color: '#fff', border: '1px solid #60a5fa', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', letterSpacing: '0.5px', transition: 'all 0.2s' }}>MID</button>
-            <button onClick={(e) => {
-              const bar = e.currentTarget.closest('.cam-control-bar') as HTMLElement;
-              const frame = bar.parentElement.querySelector('.cam-frame-container') as HTMLElement;
-              const btns = e.currentTarget.parentElement.querySelectorAll('button');
-              btns.forEach(b => { b.style.backgroundColor = '#222'; b.style.borderColor = '#444'; });
-              e.currentTarget.style.backgroundColor = '#2563eb'; e.currentTarget.style.borderColor = '#60a5fa';
-              if (bar && frame) { bar.style.width = '480px'; frame.style.display = 'block'; frame.style.width = '480px'; bar.style.borderRadius = '6px 6px 0 0'; bar.style.borderBottom = 'none'; }
-            }} style={{ padding: '3px 10px', fontSize: '10px', backgroundColor: '#222', color: '#fff', border: '1px solid #444', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', letterSpacing: '0.5px', transition: 'all 0.2s' }}>MIN</button>
-            <button onClick={(e) => {
-              const bar = e.currentTarget.closest('.cam-control-bar') as HTMLElement;
-              const frame = bar.parentElement.querySelector('.cam-frame-container') as HTMLElement;
-              const btns = e.currentTarget.parentElement.querySelectorAll('button');
-              btns.forEach(b => { b.style.backgroundColor = '#222'; b.style.borderColor = '#444'; });
-              e.currentTarget.style.backgroundColor = '#2563eb'; e.currentTarget.style.borderColor = '#60a5fa';
-              if (bar && frame) { bar.style.width = '100%'; frame.style.display = 'none'; bar.style.borderRadius = '6px'; bar.style.borderBottom = '2px solid #222'; }
-            }} style={{ padding: '3px 10px', fontSize: '10px', backgroundColor: '#222', color: '#fff', border: '1px solid #444', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', letterSpacing: '0.5px', transition: 'all 0.2s' }}>HIDE</button>
-          </div>
-        </div>
+    <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', alignItems: 'center' }}>
+      {([ 'MAX', 'MID', 'MIN', 'HIDE' ] as CamSize[]).map((size) => (
+        <button
+          key={size}
+          onClick={() => setCamSize(size)}
+          style={{
+            padding: '3px 10px',
+            fontSize: '10px',
+            backgroundColor: camSize === size ? '#2563eb' : '#222',
+            color: '#fff',
+            border: camSize === size ? '1px solid #60a5fa' : '1px solid #444',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontWeight: 'bold',
+            letterSpacing: '0.5px',
+            transition: 'all 0.2s'
+          }}
+        >
+          {size}
+        </button>
+      ))}
+    </div>
+  </div>
 
-        <div className="cam-frame-container" style={{
-          width: '800px',
-          maxWidth: '100%', 
-          aspectRatio: '4 / 3', 
-          overflow: 'hidden', 
-          borderRadius: '0 0 8px 8px',
-          border: '2px solid #222',
-          boxShadow: '0 4px 10px rgba(0,0,0,0.5)',
-          backgroundColor: '#000',
-          transition: 'width 0.3s ease'
-        }}>
-          <iframe
-            src={`http://${window.location.hostname}:8889/cam`}
-            title="File Manager Live View"
-            scrolling="no"
-            style={{ width: '100%', height: '100%', border: 'none', display: 'block', overflow: 'hidden' }}
-            onLoad={() => {
-              setTimeout(() => {
-                const led = document.getElementById('fm-led');
-                const text = document.getElementById('fm-text');
-                if (led && text) { 
-                  led.style.backgroundColor = '#22c55e'; 
-                  led.style.boxShadow = '0 0 8px #22c55e'; 
-                  text.textContent = 'Cam: ACTIVE'; 
-                }
-              }, 1500);
-            }}
-            onError={() => {
-              const led = document.getElementById('fm-led');
-              const text = document.getElementById('fm-text');
-              if (led && text) { 
-                led.style.backgroundColor = '#ef4444'; 
-                led.style.boxShadow = '0 0 8px #ef4444'; 
-                text.textContent = 'Cam: OFFLINE'; 
-              }
-            }}
-          />
-        </div>
-      </div>
+  {/* Physischer Last-Stopp für die Dateiseite */}
+  {camSize !== 'HIDE' && (
+    <div className="cam-frame-container" style={{
+      width: camSize === 'MAX' ? '1296px' : camSize === 'MID' ? '800px' : '480px',
+      maxWidth: '100%',     
+      aspectRatio: '4 / 3', 
+      overflow: 'hidden', 
+      borderRadius: '0 0 8px 8px',
+      border: '2px solid #222',
+      boxShadow: '0 4px 10px rgba(0,0,0,0.5)',
+      backgroundColor: '#000',
+      transition: 'width 0.3s ease'
+    }}>
+      <iframe 
+        src={typeof window !== 'undefined' ? `http://${window.location.hostname}:8889/cam` : ''}
+        title="Printer Files View"
+        scrolling="no"
+        style={{ width: '100%', height: '100%', border: 'none', display: 'block', overflow: 'hidden' }}
+      />
+    </div>
+  )}
+</div>
+
       <div className="rounded-lg border bg-card">
         {isLoading ? (
           <div className="flex items-center justify-center py-16">
@@ -968,7 +926,6 @@ export default function Files() {
   );
 }
 
-
 #####
 
 ### das gerade verändertes Frontend jetzt am PC kompilieren und auf den Pi übertragen:
@@ -1017,7 +974,6 @@ sudo ufw allow from 192.168.0.0/24 to any port 10000 # Webmin Browser
 sudo ufw enable
 sudo ufw reload
 
-
 sudo nano /etc/ssh/sshd_config
 #in dieser Datei bei #Port 22 das # entfernen und auf Port 50222 ändern, bei #PubkeyAuthentication yes auch das # entfernen
 sudo systemctl restart ssh
@@ -1043,7 +999,7 @@ Match Address 127.0.0.1
     PasswordAuthentication yes
 # SSH-Dienst neu starten:
 sudo systemctl restart ssh
-# WICHTIG: Mit Puttygen die "id_ed25519" am PC in eine ".ppk" umwandeln! (hinweis, bei pi imager die den normalen pub key nehmen sonst gehsts nicht)
+# WICHTIG: Mit Puttygen die zb:"id_ed25519" am PC in eine ".ppk" umwandeln! (hinweis, bei Pi Imager die den normalen Pub Key nehmen sonst geht es nicht)
 # In Putty 0.83 unter SSH -> Auth -> Credentials die ".ppk" laden.
 # Vor dem Trennen der aktuellen Verbindung IMMER im neuen Fenster prüfen,
 # ob der Login passwortlos klappt – sonst droht Aussperrung!
@@ -1070,11 +1026,18 @@ sudo tailscale up --authkey=tskey-auth-DEIN_KOPIERTER_SCHLÜSSEL_HIER
 sudo nano /etc/mediamtx/mediamtx.yml
 #Stelle suchen mit STRG-F und die echte IP des Pi's über Tailscale eintragen. (
 
-#Fertig, wirklich wahr! - nun hat man noch 1,5GB der insg. 8GB-SD frei, wobei 1.25 immer mind. frei bleiben müssen wegen Auslagerung einer eingelesenen Datei. Vielleicht nochmal mit df -h den freien Speicherplatz checken.
+#Fertig, wirklich wahr! - nun hat man noch 1,5GB der insg. 8GB-SD frei, wobei 1.25 immer mind. frei bleiben müssen wegen Auslagerung einer eingelesenen max.1GB (einstellbar) Slice-Datei. Vielleicht nochmal mit df -h den freien Speicherplatz checken.
 
-sudo reboot
 #Erinnerung: PUTTY ZUGRIFF AB JETZT NUR NOCH UNTER PORT:50222 und mit Auth-Key, oder Webmin
+#Wer will kann noch Bluetooth und HDMI deaktivieren um Strom zu sparen:
 
+sudo nano /boot/firmware/config.txt     #bei [all] unten dazuschreiben:
+dtoverlay=disable-bt
+sudo nano /boot/firmware/cmdline.txt    #folgendes hinten anhängen:
+ video=HDMI-A-1:d
+sudo systemctl disable bluetooth.service
+sudo systemctl mask bluetooth.service
+sudo reboot
 *******************************************************************************************
 #ENDE DER ANLEITUNG
 *******************************************************************************************
