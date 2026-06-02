@@ -1,5 +1,5 @@
 Mariner 2 Cam - 3D-Printer Monitoring Tool with Camera Support + OTG-USB-Gadget, Firewall, VPN, Fail2ban and Webmin installation
-This is work-in-progress but's working stable for me! -> The mariner2 code from amd989's had to be modified slightly to accept my .ctb files at all.
+This is work-in-progress but's working stable for me! -> The code from amd989 had to be modified slightly to work on new .ctb files. (bug?)
 
 Github-Project: https://github.com/frittna/mariner2cam
 this is a fork from Mariner 2 - https://github.com/amd989/mariner 
