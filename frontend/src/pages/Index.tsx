@@ -6,9 +6,12 @@ import { api, mapPrinterState, type PrinterStatus } from "@/lib/api";
 import { WifiOff, CheckCircle2, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { useState } from "react";
 
 export default function Index() {
   const queryClient = useQueryClient();
+type CamSize = 'MAX' | 'MID' | 'MIN' | 'HIDE';
+const [camSize, setCamSize] = useState<CamSize>('MAX');
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["printStatus"],
@@ -70,101 +73,82 @@ export default function Index() {
       </div>
       {/* Mariner2 HD Live Video Stream mit 4-Stage Toggle Control (MediaMTX) */}
       <div className="cam-wrapper-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '16px', width: '100%' }}>
-        
-        <div className="cam-control-bar" style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          width: '1296px',
-          maxWidth: '100%',
-          backgroundColor: '#111',
-          padding: '6px 12px',
-          borderRadius: '6px 6px 0 0',
-          border: '2px solid #222',
-          borderBottom: 'none',
-          boxSizing: 'border-box',
-          transition: 'width 0.3s ease'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#aaa', fontWeight: 'bold' }}>
-            <span id="db-led" style={{ 
-              width: '10px', 
-              height: '10px', 
-              borderRadius: '50%', 
-              backgroundColor: '#eab308', 
-              display: 'inline-block',
-              boxShadow: '0 0 8px #eab308',
-              transition: 'background-color 0.3s'
-            }} />
-            <span id="db-text">Cam: CONNECTING...</span>
-          </div>
+  
+  <div className="cam-control-bar" style={{
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: camSize === 'MAX' ? '1296px' : camSize === 'MID' ? '800px' : camSize === 'MIN' ? '480px' : '100%',
+    maxWidth: '100%',
+    backgroundColor: '#111',
+    padding: '6px 12px',
+    borderRadius: camSize === 'HIDE' ? '6px' : '6px 6px 0 0',
+    border: '2px solid #222',
+    borderBottom: camSize === 'HIDE' ? '2px solid #222' : 'none',
+    boxSizing: 'border-box',
+    transition: 'width 0.3s ease'
+  }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#aaa', fontWeight: 'bold' }}>
+      <span id="db-led" style={{ 
+        width: '10px', 
+        height: '10px', 
+        borderRadius: '50%', 
+        backgroundColor: camSize === 'HIDE' ? '#64748b' : '#22c55e', 
+        display: 'inline-block',
+        boxShadow: camSize === 'HIDE' ? 'none' : '0 0 8px #22c55e',
+        transition: 'background-color 0.3s'
+      }} />
+      <span id="db-text">{camSize === 'HIDE' ? 'Cam: DEACTIVATED' : 'Cam: ACTIVE'}</span>
+    </div>
 
-          <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', alignItems: 'center' }}>
-            <button onClick={(e) => {
-              const bar = e.currentTarget.closest('.cam-control-bar') as HTMLElement;
-              const frame = bar.parentElement.querySelector('.cam-frame-container') as HTMLElement;
-              const btns = e.currentTarget.parentElement.querySelectorAll('button');
-              btns.forEach(b => { b.style.backgroundColor = '#222'; b.style.borderColor = '#444'; });
-              e.currentTarget.style.backgroundColor = '#2563eb'; e.currentTarget.style.borderColor = '#60a5fa';
-              if (bar && frame) { bar.style.width = '1296px'; frame.style.display = 'block'; frame.style.width = '1296px'; bar.style.borderRadius = '6px 6px 0 0'; bar.style.borderBottom = 'none'; }
-            }} style={{ padding: '3px 10px', fontSize: '10px', backgroundColor: '#2563eb', color: '#fff', border: '1px solid #60a5fa', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', letterSpacing: '0.5px', transition: 'all 0.2s' }}>MAX</button>
-            <button onClick={(e) => {
-              const bar = e.currentTarget.closest('.cam-control-bar') as HTMLElement;
-              const frame = bar.parentElement.querySelector('.cam-frame-container') as HTMLElement;
-              const btns = e.currentTarget.parentElement.querySelectorAll('button');
-              btns.forEach(b => { b.style.backgroundColor = '#222'; b.style.borderColor = '#444'; });
-              e.currentTarget.style.backgroundColor = '#2563eb'; e.currentTarget.style.borderColor = '#60a5fa';
-              if (bar && frame) { bar.style.width = '800px'; frame.style.display = 'block'; frame.style.width = '800px'; bar.style.borderRadius = '6px 6px 0 0'; bar.style.borderBottom = 'none'; }
-            }} style={{ padding: '3px 10px', fontSize: '10px', backgroundColor: '#222', color: '#fff', border: '1px solid #444', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', letterSpacing: '0.5px', transition: 'all 0.2s' }}>MID</button>
-            <button onClick={(e) => {
-              const bar = e.currentTarget.closest('.cam-control-bar') as HTMLElement;
-              const frame = bar.parentElement.querySelector('.cam-frame-container') as HTMLElement;
-              const btns = e.currentTarget.parentElement.querySelectorAll('button');
-              btns.forEach(b => { b.style.backgroundColor = '#222'; b.style.borderColor = '#444'; });
-              e.currentTarget.style.backgroundColor = '#2563eb'; e.currentTarget.style.borderColor = '#60a5fa';
-              if (bar && frame) { bar.style.width = '480px'; frame.style.display = 'block'; frame.style.width = '480px'; bar.style.borderRadius = '6px 6px 0 0'; bar.style.borderBottom = 'none'; }
-            }} style={{ padding: '3px 10px', fontSize: '10px', backgroundColor: '#222', color: '#fff', border: '1px solid #444', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', letterSpacing: '0.5px', transition: 'all 0.2s' }}>MIN</button>
-            <button onClick={(e) => {
-              const bar = e.currentTarget.closest('.cam-control-bar') as HTMLElement;
-              const frame = bar.parentElement.querySelector('.cam-frame-container') as HTMLElement;
-              const btns = e.currentTarget.parentElement.querySelectorAll('button');
-              btns.forEach(b => { b.style.backgroundColor = '#222'; b.style.borderColor = '#444'; });
-              e.currentTarget.style.backgroundColor = '#2563eb'; e.currentTarget.style.borderColor = '#60a5fa';
-              if (bar && frame) { bar.style.width = '100%'; frame.style.display = 'none'; bar.style.borderRadius = '6px'; bar.style.borderBottom = '2px solid #222'; }
-            }} style={{ padding: '3px 10px', fontSize: '10px', backgroundColor: '#222', color: '#fff', border: '1px solid #444', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', letterSpacing: '0.5px', transition: 'all 0.2s' }}>HIDE</button>
-          </div>
-        </div>
+    <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', alignItems: 'center' }}>
+      {(['MAX', 'MID', 'MIN', 'HIDE'] as CamSize[]).map((size) => (
+        <button
+          key={size}
+          onClick={() => setCamSize(size)}
+          style={{
+            padding: '3px 10px',
+            fontSize: '10px',
+            backgroundColor: camSize === size ? '#2563eb' : '#222',
+            color: '#fff',
+            border: camSize === size ? '1px solid #60a5fa' : '1px solid #444',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontWeight: 'bold',
+            letterSpacing: '0.5px',
+            transition: 'all 0.2s'
+          }}
+        >
+          {size}
+        </button>
+      ))}
+    </div>
+  </div>
 
-        <div className="cam-frame-container" style={{
-          width: '1296px',
-          maxWidth: '100%',     
-          aspectRatio: '4 / 3', 
-          overflow: 'hidden', 
-          borderRadius: '0 0 8px 8px',
-          border: '2px solid #222',
-          boxShadow: '0 4px 10px rgba(0,0,0,0.5)',
-          backgroundColor: '#000',
-          transition: 'width 0.3s ease'
-        }}>
-          <iframe 
-            src={`http://${window.location.hostname}:8889/cam`}
-            title="Printer Live View"
-            scrolling="no"
-            style={{ width: '100%', height: '100%', border: 'none', display: 'block', overflow: 'hidden' }}
-            onLoad={() => {
-              setTimeout(() => {
-                const led = document.getElementById('db-led');
-                const text = document.getElementById('db-text');
-                if (led && text) { led.style.backgroundColor = '#22c55e'; led.style.boxShadow = '0 0 8px #22c55e'; text.textContent = 'Cam: ACTIVE'; }
-              }, 1500);
-            }}
-            onError={() => {
-              const led = document.getElementById('db-led');
-              const text = document.getElementById('db-text');
-              if (led && text) { led.style.backgroundColor = '#ef4444'; led.style.boxShadow = '0 0 8px #ef4444'; text.textContent = 'Cam: OFFLINE'; }
-            }}
-          />
-        </div>
-      </div>
+  {/* Last-Stopp Logik: Wenn camSize 'HIDE' ist, wird das iframe komplett gelöscht */}
+  {camSize !== 'HIDE' && (
+    <div className="cam-frame-container" style={{
+      width: camSize === 'MAX' ? '1296px' : camSize === 'MID' ? '800px' : '480px',
+      maxWidth: '100%',     
+      aspectRatio: '4 / 3', 
+      overflow: 'hidden', 
+      borderRadius: '0 0 8px 8px',
+      border: '2px solid #222',
+      boxShadow: '0 4px 10px rgba(0,0,0,0.5)',
+      backgroundColor: '#000',
+      transition: 'width 0.3s ease'
+    }}>
+      <iframe 
+        src={typeof window !== 'undefined' ? `http://${window.location.hostname}:8889/cam` : ''}
+        title="Printer Live View"
+        scrolling="no"
+        style={{ width: '100%', height: '100%', border: 'none', display: 'block', overflow: 'hidden' }}
+      />
+    </div>
+  )}
+</div>
+
+
       {/* Mariner2: Dynamische Modell-Vorschau oberhalb des Druckerstatus (Nur wenn gedruckt/pausiert wird) */}
       {!isLoading && !error && (status === "printing" || status === "paused") && job?.fileName && (
         <div className="preview-wrapper-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '16px', width: '100%' }}>
