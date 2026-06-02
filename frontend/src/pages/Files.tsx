@@ -44,6 +44,21 @@ export default function Files() {
   type CamSize = 'MAX' | 'MID' | 'MIN' | 'HIDE';
   const [camSize, setCamSize] = useState<CamSize>('MAX');
 
+    const handleSizeChange = async (size: CamSize) => {
+    // 1. Visuell im Browser umschalten (Größe anpassen / Iframe unmounten)
+    setCamSize(size);
+
+    // 2. Befehl an das Python-Backend senden, um MediaMTX zu stoppen/starten
+    try {
+      const action = size === 'HIDE' ? 'stop' : 'start';
+      await fetch(`/api/camera/${action}`, { 
+        method: 'POST' 
+      });
+    } catch (error) {
+      console.error("Fehler beim Umschalten des Kamera-Dienstes im Backend:", error);
+    }
+  };
+
   const { data, isLoading } = useQuery({
     queryKey: ["files", currentPath],
     queryFn: () => api.listFiles(currentPath),
