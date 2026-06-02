@@ -20,7 +20,7 @@ export function AppNav() {
             <Printer className="h-4 w-4 text-primary-foreground" />
           </div>
           <span className="font-display text-lg font-bold tracking-tight">
-            Mariner 2
+            Mariner 2 Cam
           </span>
         </div>
 
