@@ -2,8 +2,8 @@ Mariner 2 Cam - 3D-Printer Monitoring Tool with Camera Support + OTG-USB-Gadget,
 This is work-in-progress but's working stable for me! -> The code from amd989 had to be modified slightly to work on new .ctb files. (bug?)
 
 Github-Project: https://github.com/frittna/mariner2cam
-this is a fork from Mariner 2 - https://github.com/amd989/mariner 
-what is a fork from Mariner   - https://github.com/luizribeiro/mariner
+is a fork from Mariner 2 - https://github.com/amd989/mariner 
+that is a fork from Mariner   - https://github.com/luizribeiro/mariner
 
 You can run it yourself by following this tutorial (in german at the moment)
 --> There is seperate instruction for the Zero 1.1 wich was NOT COMPATIBLE at the beginning with todays automatic scripts. But the Zero 1 weak and i 
