@@ -1102,11 +1102,14 @@ sudo nano /boot/firmware/cmdline.txt    #(nicht empfohlen) folgendes hinten anh�
 sudo reboot
 
 *******************************************************************************************
-#ENDE DER ANLEITUNG - wenn erfolgreich.. nicht schlecht!
+                #ENDE DER ANLEITUNG - wenn erfolgreich.. nicht schlecht!
 *******************************************************************************************
 
-## Bei unbekannten Fehlern oder Problemen kann das hier helfen:
+-------------------------------------------------------------------------------------------
 
+*******************************************************************************************
+## Bei unbekannten Fehlern oder Problemen kann das hier helfen:
+*******************************************************************************************
 # RAM-Cache manuell leeren (gibt blockierten Speicher frei):
 sudo sync && sudo sysctl -w vm.drop_caches=3
 
@@ -1129,8 +1132,12 @@ sudo chmod 666 /piusb.bin
 # Müll-Ordner (wie "System Volume Information" von Windows) im Share löschen:
 sudo rm -rf /mnt/usb_share/*
 
+# "Checkdisk" machen:
+sudo dosfsck -a /piusb.bin
+
 # ====================================================================
-# NÜTZLICHE DIAGNOSE-BEFEHLE FÜR DIE KONSOLE:
+
+# DIAGNOSE-BEFEHLE FÜR DIE KONSOLE:
 #
 # Taskmanager in der Konsole öffnen (Beenden mit Taste 'q'):
 htop
@@ -1146,4 +1153,16 @@ sudo nmcli dev wifi list
 
 # Den Video-Stream im Netzwerk direkt im Browser aufrufen unter:
 # http://192.168.0.XXX:8889/cam/
-# ====================================================================
+
+#Diverse Diense-Stati abfragen:
+sudo systemctl status mariner3d.service
+sudo systemctl status mediamtx.service
+tailscale status
+sudo systemctl status smbd
+sudo ufw status verbose
+sudo systemctl status webmin
+sudo systemctl list-units --type=service --state=running
+sudo systemctl --failed
+
+
+-END-ENDE-FIN-
