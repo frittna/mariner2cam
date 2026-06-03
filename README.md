@@ -31,9 +31,9 @@ You can run it yourself by following this tutorial in 1-2 hours (in German at th
 
 ### Screenshots
 
-![grafic1](Screenshot2mid_DB.jpg)
+![grafic1](Screenshot3min_FM.jpg)
 
-![grafic2](Screenshot3min_FM.jpg)
+![grafic2](Screenshot1max_DB.jpg)
 
 ![grafic3](Screenshot4print_preview.jpg)
 
