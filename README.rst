@@ -1,7 +1,8 @@
 Mariner 2 Cam - 3D-Printer Monitoring Tool with Camera Support + OTG-USB-Gadget, Firewall, VPN, Fail2ban and Webmin installation
-This is work-in-progress but's working stable for me! -> The code from amd989 had to be modified slightly to work on new .ctb files. (bug?)
+This is work-in-progress but's working stable and working, now. I went througt all the steps in my guide again from a refresh install.
+ -> The code from amd989 had to be modified a bit to work on new .ctb files. (was a bug or caused by a chitobox update?)
 
-Github-Project: https://github.com/frittna/mariner2cam
+Github-Project: https://github.com/frittna/mariner2cam                                      last Changes:  17:53 - 03.June.2026
 is a fork from Mariner 2 - https://github.com/amd989/mariner 
 that was a fork from Mariner   - https://github.com/luizribeiro/mariner
 
@@ -29,7 +30,8 @@ Baut auf Code: Github-Code: https://github.com/amd989/mariner
 Änderungen gibt es hauptsächlich im Mariner Frontend füpr die Webseite, und der Datei ctb_encrypted.py.
 
 Mein Drucker: Elegoo Mars 3
-HINWEIS: Neue Chitubox .ctb Datein sind so verschlüsselt, dass Mariner recht langsam auf nur einem Core braucht das Vorschaubild lädt. Workaround: mit UVtools die .ctb sclice Datei neu abspeichern
+HINWEIS: Neue Chitubox .ctb Datein sind so verschlüsselt, dass Mariner recht langsam auf nur einem Core braucht das Vorschaubild lädt.
+Workaround: mit UVtools die .ctb sclice Datei neu abspeichern, dafür manchmal verzerrte Dartellung des Vorschaubildes
 
 ###### VORBEREITUNG: (Raspberry Pi Imager Tool für Windows)
 Auf dem Zero 2 W geht Trixie 64-bit OS-Lite.
@@ -51,33 +53,38 @@ sudo systemctl restart systemd-timesyncd
 sudo apt update && sudo apt upgrade -y
 
 sudo curl -fsSL https://amd989.github.io/mariner/setup.sh | sudo bash
-sudo apt install mariner3d
-sudo mariner3d-setup-pi --size 1280  #(ohne Argument sind es 2GB, bei 8GB SD-Karte 1280 GB nehmen)
+sudo apt install mariner3d -y
+sudo mariner3d-setup-pi --size 1280  #(ohne Argument sind es 2GB, bei 8GB SD-Karte max.1280 GB nehmen)
 
-#Da der USB-Gadget also das USB-Laufwerk in Windows nicht gleich angezeigt wird, muss man folgendes in die cmdline.txt hinzufügen:
-sudo nano /boot/firmware/cmdline.txt     #Mit CTRL-O, Enter, CTRL-X speichern:
-#in diese Datei nach rootwait hinzufügen (alles muss weiterhin in einer einzigen Zeile bleiben!):
-modules-load=dwc2,g_mass_storage 
-#Weil Windows 11 keine no-name ID's ohne SN# mehr akzeptiert:
+#Da der USB-Gadget also das USB-Laufwerk in Windows 11 nicht gleich angezeigt wird, muss man folgendes tun:
 sudo nano /etc/modprobe.d/usb_gadget.conf
 #In diese Datei folgendes einfügen:
 options g_mass_storage file=/piusb.bin stall=0 removable=1 idVendor=0x0525 idProduct=0xa4a5 iSerialNumber=123456
+
+#dann folgende Datei ändern:
 sudo nano /boot/firmware/config.txt
-#in diese Datei folgendes kontrollieren oder unter [all] hinzufügen. 
-dtoverlay=dwc2
+#in diese Datei wie folgend unter [all] hinzufügen:
+
+[all]
 enable_uart=1
+dtoverlay=dwc2
+camera_auto_detect=1
+dtoverlay=vc4-kms-v3d
 dtoverlay=gpio-shutdown,gpio_pin=21,active_low=1,gpio_pull=up,debounce_ms=1000
-#Die letzte Zeile ist nur für einen optionalen Shutdown-Button zwischen PIN40 (GPIO21) & PIN39 (GND) - wer das will
+
+#Die letzte Zeile ist nur für einen optionalen Shutdown-Button zwischen PIN40 (GPIO21) & PIN39 (GND)
+
+sudo reboot   #danach sollte das USB-Laufwerk in Windows funktionieren
 
 
-# JETZT DIE WICHTIGEN KORREKTUREN:
+# JETZT DIE WICHTIGEN KORREKTUREN FÜR MARINER2:
 #Damit mariner mit ganz aktuellen Chitubox .ctb Dateien keine Probleme hat und stecken bleibt MUSS man 
 #folgende Änderungen in der Datei ctb_encrypted.py vornehmen um einen Fehler einfach zu überspringen.
 #Wenn die auto-skripts von oben gelaufen sind, ist der Pfad im folgenden sudo Befehl richtig
 #Wenn nicht dann suche den richtigen Pfad der Datei mit dem Befehl: sudo find / -name "ctb_encrypted.py" 2>/dev/null
 sudo nano /opt/venvs/mariner3d/lib/python3.13/site-packages/mariner/file_formats/ctb_encrypted.py
 
-#in diese ctb_encrypted.py das genau so einfügen die 12 Leerzeichen beachten!
+#in diese ctb_encrypted.py das genau so abändern, die 12 links Leerzeichen beachten!
 ab Zeile 256:  (springen in Zeile mit Strg + Shift + minus)
  
             # Validate hash
@@ -124,20 +131,25 @@ Environment="TMPDIR=/var/tmp"
 #In der Datei __init__.py folgenden Block fast ganz unten, so abändern (Abstände seitlich wieder genau beachten):
 sudo nano /opt/venvs/mariner3d/lib/python3.13/site-packages/mariner/server/__init__.py
 
+def main() -> None:
+    CacheBootstrapper().start()
+
+    # Global log level applies to mariner.* and waitress output.
+    log_level = getattr(logging, config.get_log_level(), logging.INFO)
+    if not logging.getLogger().handlers:
+        logging.basicConfig(level=log_level)
     else:
         logging.getLogger().setLevel(log_level)
     logging.getLogger("mariner").setLevel(log_level)
     logging.getLogger("waitress").setLevel(log_level)
 
-    # --- HIER DIE ZWEI FIXES EINFÜGEN ---
     flask_app.config['WTF_CSRF_ENABLED'] = False
     flask_app.config['MAX_CONTENT_LENGTH'] = 1342177280
     import os
     os.environ['TMPDIR'] = '/var/tmp'
-    # -----------------------------------
 
-    serve(flask_app, host=config.get_http_host(), port=config.get_http_port()), max_request_body_size=1342177280)
-
+    serve(flask_app, host=config.get_http_host(), port=config.get_http_port(), max_request_body_size=1342177280)
+    
 
 #dann:
 sudo systemctl daemon-reload
@@ -167,43 +179,6 @@ sudo systemctl stop serial-getty@ttyAMA0
 sudo systemctl mask serial-getty@ttyAMA0
 
 
-##FERTIG## sudo reboot
-
-Warten bis komplett neu gestartet hat - 2 Minuten+ mindestens.
-
-#Den mariner Status prüfen? ->                   sudo systemctl status mariner3d.service
-
-#Einsicht in die mariner-Logs hat man unter ->   sudo journalctl -u mariner3d.service -n 40 --no-pager
-
-Mariner2 Webseiten im Browser laden:             http://192.168.0.XXX:5000/ 
-
-#    Glückwunsch! - Nun fehlt noch die Implementierung der Pi Kamera falls man eine hat. Zusätzlich werden jetzt
-#    wichtige Sicherheits-Maßnahmen gemacht, Samba-Share (lieber dann nur auf Bedarf aktiv lassen), 
-#    Webmin als grafisches Admin-Tool für den Webbrowser am PC + Fail2Ban (brute force Attacken Abwehr)
-#    und Tailscape als VPN-Dienst installiert, um Mariner2 auch von außen sicher zu erreichen.
-#    ----------------------------------------------------------------------------
-
-##Bei unbekannten Fehlern oder Problemen kann helfen:
-#Cache löschen:
-sudo sync && sudo sysctl -w vm.drop_caches=3
-#Oder den USB-Container komplett zurücksetzen & neu erstellen
-sudo umount -fl /mnt/usb_share
-sudo modprobe -r g_mass_storage
-sudo systemctl stop smbd nmbd
-sudo rm -f /piusb.bin
-sudo dd if=/dev/zero of=/piusb.bin bs=1M count=1024
-sudo mkfs.vfat -F 32 -n "MARINER" /piusb.bin
-sudo mkdir -p /mnt/usb_share
-sudo mount -o loop,rw,uid=1000,gid=1000,dmask=000,fmask=000 /piusb.bin /mnt/usb_share
-#Danach das USB-Gadget für den Drucker/PC wieder aktivieren:
-sudo modprobe g_mass_storage file=/piusb.bin stall=0 removable=1 idVendor=0x0525 idProduct=0xa4a5 iSerialNumber=123456
-rm /mnt/usb_share/* -rd    ##müll Ordner löschen
-für eine Art Taskmanager in der Konsole gibt es den Befehl:  htop
-#CPU Temperatur anzeigen, < 60°C wäre perfekt:           rpicam-still --version >/dev/null 2>&1; vcgencmd measure_temp
-#laufende CPU-Temp-Überwachung in der Kommandozeie mit:  watch -n 2 vcgencmd measure_temp
-#Wlan Stärke überprüfen:                                 sudo iwlist wlan0 scan | egrep "ESSID|Signal"
-
-------------------------------------
 
 #############################################################################
 #############################################################################
@@ -227,30 +202,24 @@ sudo nano /etc/samba/smb.conf
 
 # 3.Samba-Dienst neu starten, um Freigabe zu aktivieren:
 sudo systemctl restart smbd
-
 #Zugriff über Netzwerkadresse zb. \\192.168.X.XXX\3D-Printer_USB
-
 ## SAMBA Deaktivieren ?: 
 sudo systemctl stop smbd nmbd
 sudo systemctl disable smbd nmbd
+
 -----------------------------------
+
+### OPTIONAL -  WEBMIN Installieren, Zeilen einzeln eingeben:
+curl url -o webmin-sectup-repo.sh https://raw.githubusercontent.com/webmin/webmin/master/webmin-setup-repo.sh
+sudo sh webmin-setup-repo.sh -f
+sudo apt-get install webmin --install-recommends -y
+#Zugriff dann möglich über: https://<192.168.X.XXX>:10000
 
 
 #############################################################################
 
 
-### OPTIONAL -  WEBMIN Installieren, Zeilen einzeln eingeben:
-surl curl -o webmin-setup-repo.sh https://raw.githubusercontent.com/webmin/webmin/master/webmin-setup-repo.sh
-sudo sh webmin-setup-repo.sh -f
-sudo apt-get install webmin --install-recommends
-#Zugriff dann möglich über: https://<192.168.X.XXX>:10000
-
 ########## Pi-CAMERA SUPPORT Zero 2
-sudo nano /boot/firmware/config.txt
-#suchen und aktivieren oder ganz unten eintragen:
-camera_auto_detect=1
-dtoverlay=vc4-kms-v3d
-
 # Wichtig ->Kamera-Blockade durch systemd/Pipewire lösen: (Fehlermeldungen falls nicht vohanden ignorieren)
 systemctl --user stop pipewire wireplumber pipewire.socket 2>/dev/null
 systemctl --user disable pipewire wireplumber pipewire.socket 2>/dev/null
@@ -293,7 +262,7 @@ webrtc: yes
 webrtcAddress: :8889
 webrtcLocalUDPAddress: :8189
 webrtcIPsFromInterfaces: yes
-webrtcAdditionalHosts: [100.X.X.X]
+webrtcAdditionalHosts: [100.99.99.99]
 #da du diese IP im Moment nicht wissen kannst muss du sie später nochmal eintragen, oder wenn das VPN-Zertifikat abläuft
 
 #folgenden Block genau so abändern, beachte die gelöschten [] nach webrtcICEServers2:
@@ -341,9 +310,20 @@ def control_camera(action: str):
 EOF
 
 
-#NUN AM PC DIE DATEI ÖFFNEN: C:\mariner\frontend\src\pages\Index.tsx und den gesamten Inhalt ersetzen:
+#    Halbzeit! - Nun fehlt noch die Implementierung der Pi Kamera und weitere Maßnahmen am Frontend,
+#    Zusätzlich werden jetzt wichtige Sicherheits-Maßnahmen gemacht, Samba-Share (lieber nur auf aktiv), 
+#    Webmin als grafisches Admin-Tool für den Webbrowser am PC + Fail2Ban (brute force Attacken Abwehr)
+#    und Tailscape als VPN-Dienst installiert, um Mariner2 auch von außen sicher zu erreichen.
+#    ----------------------------------------------------------------------------
 
-######
+
+
+######################################################################################################
+#NUN AM PC DIE DATEI ÖFFNEN: C:\mariner\frontend\src\pages\Index.tsx und den gesamten Inhalt ersetzen:
+######################################################################################################
+
+
+
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { PrintProgress } from "@/components/PrintProgress";
 import { PrintControls } from "@/components/PrintControls";
@@ -624,14 +604,27 @@ export default function Index() {
     </div>
   );
 }
-#####
+
+#######################################################################################################################
 #####
 #####
 #####
 
-DAS SELBE AM PC MIT DER DATEI : C:\mariner\frontend\src\pages\Files.tsx machen und alles ersetzten.
 
-#####
+
+
+
+
+
+#DAS SELBE AM PC MIT DER DATEI : C:\mariner\frontend\src\pages\Files.tsx machen und alles ersetzten.
+
+
+
+
+
+
+
+#######################################################################################################################
 #####
 #####
 #####
@@ -998,11 +991,18 @@ export default function Files() {
   );
 }
 
-#####
 
-### das gerade verändertes Frontend jetzt am PC kompilieren und auf den Pi übertragen:
+
+#############################################################################################################################
+
+
+
+
+
+
+### das gerade veränderte Frontend jetzt am PC kompilieren und auf den Pi übertragen:
 Dazu jetzt in Windows das Softwarepaket zum Kompilieren installieren: Installer: node-v24.16.0-x64.msi (Node.js install googlen)
-Öffne die Windows-Eingabeaufforderung (cmd) auf deinem PC und gehe in den Ordner Frontend:
+Öffne die Windows-Eingabeaufforderung (cmd) auf deinem PC und gehe in den RICHTIGEN (!) Ordner Frontend:
 cd C:\mariner\frontend
 npm run build -- --base=./
 # Den erzeugten Ordner "dist" aus mariner/frontend mit der Samba-Freigabe auf den Pi kopieren. Windows-Netzlaufwerk lieber wieder trennen
@@ -1017,16 +1017,23 @@ sudo chmod -R 755 /opt/venvs/mariner3d/dist
 rm -rf /mnt/usb_share/dist/
 sudo systemctl restart mariner3d.service
 
+##FERTIG## sudo reboot
 
-# Noch kein Kamerabild und Fehler im Kamerafenster..? ist evtl. noch wegen den noch folgenden Sicherheitseinstellungen:
-# Den Video-Stream findet man SPÄTER auch extra unter den Link:    http://192.168.0.XXX:8889/cam/
-# Im Browser für das Dashboard einmal hard refreh (STRG+F5) drücken sollte bis auf Kamera gehen.
-#
+Warten bis komplett neu gestartet hat - 2 Minuten+ mindestens.
+
+#Den mariner Status prüfen? ->                   sudo systemctl status mariner3d.service
+
+#Einsicht in die mariner-Logs hat man unter ->   sudo journalctl -u mariner3d.service -n 40 --no-pager
+
+Mariner2 Webseiten im Browser laden:             http://192.168.0.XXX:5000/ 
+
+------------------------------------
+
 # ==============================================================================
-# NOCH EIN PAAR SICHERHEITS TIPS MIT 4 MASSNAHMEN
+# NOCH EIN PAAR SICHERHEITS MASSNAHMEN MIT 4 MASSNAHMEN
 # ==============================================================================
 # 1. Firewall installieren und absichern:
-sudo apt install ufw
+sudo apt install ufw -y
 
 sudo ufw default deny incoming
 sudo ufw default allow outgoing
@@ -1046,14 +1053,13 @@ sudo ufw allow from 192.168.0.0/24 to any port 10000 # Webmin Browser
 sudo ufw enable
 sudo ufw reload
 
-sudo nano /etc/ssh/sshd_config
 #in dieser Datei bei #Port 22 das # entfernen und auf Port 50222 ändern, bei #PubkeyAuthentication yes auch das # entfernen
 sudo systemctl restart ssh
 
 #!! Ab nun ist SSH Login über Port 50222 und nur noch mir Auth Key erreichbar.
 
 # 2. Fail2Ban installieren (loggt und sperrt brute force logins):
-sudo apt install fail2ban
+sudo apt install fail2ban -y
 
 # 3. SSH auf Key statt Passwort umstellen (falls nicht von anfang an mit Pi Imager so eingestellt wurde):
 # Am PC folgendes in der Eingabeaufforderung (cmd) ausführen und 3x Enter drücken:
@@ -1079,8 +1085,9 @@ sudo systemctl restart ssh
 # 4. VPN für Verbindungen von Außen (die ja sonst geblockt werden):
 # Das Skript tailscale laden
 curl -fsSL https://tailscale.com/install.sh | sh
+#initialisieren:
 sudo tailscale up
--
+#den Status kann man spärer abrufen mit:  tailscale status
 
 Was passiert nach sudo tailscale up? Der Pi generiert in der Konsole eine eindeutige Internetadresse (einen Login-Link).Kopieren Sie diesen Link und öffnen Sie ihn im Browser auf Ihrem PC.Melden Sie sich dort an oder einloggen. Der Pi wird sofort in Ihr privates Netzwerk aufgenommen und erhält eine eigene, dauerhafte IP-Adresse (beginnend mit 100.X.X.X).
 
@@ -1098,17 +1105,37 @@ sudo tailscale up --authkey=tskey-auth-DEIN_KOPIERTER_SCHLÜSSEL_HIER
 sudo nano /etc/mediamtx/mediamtx.yml
 #Stelle suchen mit STRG-F und die echte IP des Pi's über Tailscale eintragen. (
 
-#Fertig, wirklich wahr! - nun hat man noch 1,5GB der insg. 8GB-SD frei, wobei 1.25 immer mind. frei bleiben müssen wegen Auslagerung einer eingelesenen max.1GB (einstellbar) Slice-Datei. Vielleicht nochmal mit df -h den freien Speicherplatz checken.
+#Fertig, wirklich wahr!!! - nun hat man noch 1,5GB der insg. 8GB-SD frei, wobei 1.25 immer mind. frei bleiben müssen wegen Auslagerung einer eingelesenen max.1GB (einstellbar) Slice-Datei. Vielleicht nochmal mit df -h den freien Speicherplatz checken.
 #Erinnerung: PUTTY ZUGRIFF AB JETZT NUR NOCH UNTER PORT:50222 und mit Auth-Key, oder Webmin
 
-#Wer will kann noch Bluetooth und HDMI deaktivieren um Strom zu sparen:
-sudo nano /boot/firmware/config.txt     #bei [all] unten dazuschreiben:
-dtoverlay=disable-bt
-sudo nano /boot/firmware/cmdline.txt    #folgendes hinten anhängen:
- video=HDMI-A-1:d
+#Wer will kann noch den Bluetooth Dienst und HDMI phyisch deaktivieren um Strom zu sparen: (HDMI nicht empfohlen wegen potentiellem Lockout) 
 sudo systemctl disable bluetooth.service
 sudo systemctl mask bluetooth.service
+
+sudo nano /boot/firmware/cmdline.txt    #(nicht empfohlen) folgendes hinten anhängen bei Bedarf um HDMI zu deaktivieren:
+ video=HDMI-A-1:d
+
 sudo reboot
 *******************************************************************************************
-#ENDE DER ANLEITUNG
+#ENDE DER ANLEITUNG - wenn erfolgreich.. nicht schlecht!
 *******************************************************************************************
+##Bei unbekannten Fehlern oder Problemen möglicherweise das helfen:
+#Cache löschen:
+sudo sync && sudo sysctl -w vm.drop_caches=3
+#Oder den USB-Container komplett zurücksetzen & neu erstellen
+sudo umount -fl /mnt/usb_share
+sudo modprobe -r g_mass_storage
+sudo systemctl stop smbd nmbd
+sudo rm -f /piusb.bin
+sudo dd if=/dev/zero of=/piusb.bin bs=1M count=1024   #oder mehr 2048 4092 6144 
+sudo mkfs.vfat -F 32 -n "MARINER" /piusb.bin
+sudo mkdir -p /mnt/usb_share
+sudo mount -o loop,rw,uid=1000,gid=1000,dmask=000,fmask=000 /piusb.bin /mnt/usb_share
+#Danach das USB-Gadget für den Drucker/PC wieder aktivieren:
+sudo modprobe g_mass_storage file=/piusb.bin stall=0 removable=1 idVendor=0x0525 idProduct=0xa4a5 iSerialNumber=123456
+rm /mnt/usb_share/* -rd    ##müll Ordner löschen
+für eine Art Taskmanager in der Konsole gibt es den Befehl:  htop
+#CPU Temperatur anzeigen, < 60°C wäre perfekt:           rpicam-still --version >/dev/null 2>&1; vcgencmd measure_temp
+#laufende CPU-Temp-Überwachung in der Kommandozeie mit:  watch -n 2 vcgencmd measure_temp
+#Wlan Stärke überprüfen:                                 sudo iwlist wlan0 scan | egrep "ESSID|Signal"
+Den Video-Stream allein findet man unter:   http://192.168.0.XXX:8889/cam/
