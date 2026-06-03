@@ -31,10 +31,10 @@ You can run it yourself by following this tutorial in 1-2 hours (in German at th
 
 ### Screenshots
 
-![Grafik1](Screenshot1maxDB.jpg)
+![Grafik1](Screenshot2mid_DB.jpg)
 
-![Grafik1](Screenshot3min_FM.jpg)
+![Grafik2](Screenshot3min_FM.jpg)
 
-![Grafik1](Screenshot4print_preview.jpg)
+![Grafik3](Screenshot4print_preview.jpg)
 
 ---
