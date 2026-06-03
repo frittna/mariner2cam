@@ -60,7 +60,8 @@ sudo reboot
 
 sudo modprobe -r g_mass_storage
 sudo modprobe g_mass_storage
-#danach sollte das USB-Laufwerk in Windows funktionieren, auch mit schreibe Recht
+#danach sollte das USB-Laufwerk in Windows funktionieren, auch mit schreibe Rechten
+#man sollte das Laufwerk in Windows immer sauber auswerfen wenn es mal angesteck wurde!
 
 # JETZT DIE WICHTIGEN KORREKTUREN FÜR MARINER2:
 #Damit mariner mit ganz aktuellen Chitubox .ctb Dateien keine Probleme hat und stecken bleibt MUSS man 
@@ -185,7 +186,7 @@ sudo nano /etc/samba/smb.conf
 # 3.Samba-Dienst neu starten, um Freigabe zu aktivieren:
 sudo systemctl restart smbd
 #Zugriff über Netzwerkadresse zb. \\192.168.X.XXX\3D-Printer_USB
-## SAMBA Deaktivieren ?: 
+## SAMBA Deaktivieren ? sollte man spätestens nachher tun da es einfach Konfikte geben wird: 
 sudo systemctl stop smbd nmbd
 sudo systemctl disable smbd nmbd
 
@@ -1129,7 +1130,7 @@ sudo mount -o loop,rw,uid=1000,gid=1000,dmask=000,fmask=000 /piusb.bin /mnt/usb_
 sudo modprobe g_mass_storage file=/piusb.bin stall=0 removable=1 idVendor=0x0525 idProduct=0xa4a5 iSerialNumber=123456 ro=0
 sudo chmod 666 /piusb.bin
 
-# Müll-Ordner ("System Volume Information" von Windows) im Share-Ordner löschen:
+# Müll-Ordner ("System Volume Information" von Windows) im Share löschen:
 sudo rm -rd /mnt/usb_share/'System Volume Information'
 
 # "Checkdisk" machen:
