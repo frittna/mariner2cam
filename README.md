@@ -18,8 +18,8 @@
 
 ### 📖 Complete Installation Guide & Code
 
-The full step-by-step guide for a Zero 2 W including can be found here:
-You can run it yourself by following this tutorial (in German at the moment).
+A tested full step-by-step guide to make a fresh Zero 2 W installation can be found here.
+You can run it yourself by following this tutorial in 1-2 hours (in German at the moment).
 
 ➡️ **[Click here to view: CompleteInstructionZero2.txt](CompleteInstructionZero2.txt)**
 
