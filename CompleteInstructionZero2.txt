@@ -1077,7 +1077,7 @@ Den Pi direkt per Schlüssel einbuchen, dazu mit Strg-C mal den stehenden Prozes
 
 sudo tailscale up --authkey=tskey-auth-DEIN_KOPIERTER_SCHLÜSSEL_HIER
 
-#Da wir jetzt unsere Teilscale Pi-IP kennen müssen wir sie statt "webrtcAdditionalHosts: [100.X.X.X]" noch eintragen:
+#Da wir jetzt unsere Tailscale Pi-IP kennen müssen wir sie statt "webrtcAdditionalHosts: [100.X.X.X]" noch eintragen:
 sudo nano /etc/mediamtx/mediamtx.yml
 #Stelle suchen mit STRG-F und die echte IP des Pi's über Tailscale eintragen. (
 
