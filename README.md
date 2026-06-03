@@ -1,6 +1,6 @@
 🔴 Mariner 2 Cam for Pi Zero 2
 
-### 3D-Printer Monitoring Tool with Camera Support + OTG-USB-Gadget, Firewall, VPN, Fail2ban, Webmin and a physical shutdown  ###
+### 3D-Printer Monitoring Tool with Camera Support, WLAN OTG-USB-Gadget, Firewall, VPN, Fail2ban, Webmin and a physical shutdown  ###
 **Status:** Work-in-progress, but working stable and fine now. I went through all the steps in my guide again from a fresh install to test it.
 
 You will need a external power adapter for you Pi for sure and be careful that you not run into the double-power problem of your pi+printer.
