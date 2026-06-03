@@ -61,7 +61,8 @@ sudo reboot
 sudo modprobe -r g_mass_storage
 sudo modprobe g_mass_storage
 #danach sollte das USB-Laufwerk in Windows funktionieren, auch mit schreibe Rechten
-#man sollte das Laufwerk in Windows immer sauber auswerfen wenn es mal angesteck wurde!
+#man sollte das Laufwerk in Windows immer sauber auswerfen oder besser garnicht am OTG-Anschluß
+#anstecken,um das Filesystem nicht zu zerschießen oder ein dirty-bit zu erzeugen - geht ja über WLAN
 
 # JETZT DIE WICHTIGEN KORREKTUREN FÜR MARINER2:
 #Damit mariner mit ganz aktuellen Chitubox .ctb Dateien keine Probleme hat und stecken bleibt MUSS man 
@@ -1127,8 +1128,13 @@ sudo mkdir -p /mnt/usb_share
 sudo mount -o loop,rw,uid=1000,gid=1000,dmask=000,fmask=000 /piusb.bin /mnt/usb_share
 
 # Danach das USB-Gadget für den PC/Drucker mit Schreibrechten neu starten:
-sudo modprobe g_mass_storage file=/piusb.bin stall=0 removable=1 idVendor=0x0525 idProduct=0xa4a5 iSerialNumber=123456 ro=0
+#Rechte fixen
+sudo chown -R pi:www-data /mnt/usb_share
+sudo chmod -R 666 /mnt/usb_share
+sudo chmod 777 /piusb.bin
 sudo chmod 666 /piusb.bin
+sudo chown pi:www-data /piusb.bin
+sudo modprobe g_mass_storage file=/piusb.bin stall=0 removable=1 idVendor=0x0525 idProduct=0xa4a5 iSerialNumber=123456 ro=0
 
 # Müll-Ordner ("System Volume Information" von Windows) im Share löschen:
 sudo rm -rd /mnt/usb_share/'System Volume Information'
