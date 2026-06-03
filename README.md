@@ -33,8 +33,6 @@ You can run it yourself by following this tutorial (in German at the moment).
 
 ![Grafik1](Screenshot1maxDB.jpg)
 
-![Grafik1](Screenshot2mid_DB.jpg)
-
 ![Grafik1](Screenshot3min_FM.jpg)
 
 ![Grafik1](Screenshot4print_preview.jpg)
