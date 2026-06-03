@@ -3,6 +3,8 @@
 ### 3D-Printer Monitoring Tool with Camera Support + OTG-USB-Gadget, Firewall, VPN, Fail2ban, Webmin and a physical shutdown button with 1sec delay ###
 **Status:** Work-in-progress, but working stable and fine now. I went through all the steps in my guide again from a fresh install to test it.
 
+You will need a external power adapter for you Pi for sure and be careful that you not run into the double-power problem of your pi+printer.
+
 >**Chitobox-Note:** The ctb decryption from amd989 had to be modified a bit to work on new `.ctb` files (is it a bug or caused by a Chitobox update?).
 
 ---
