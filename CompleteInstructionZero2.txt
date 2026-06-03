@@ -10,7 +10,8 @@ HINWEIS: Neue Chitubox .ctb Datein sind so verschlüsselt, dass Mariner recht la
 Workaround: mit UVtools die .ctb sclice Datei neu abspeichern, dafür manchmal verzerrte Dartellung des Vorschaubildes
 
 ###### VORBEREITUNG: (Raspberry Pi Imager Tool für Windows)
-Auf dem Zero 2 W geht Trixie 64-bit OS-Lite.
+Auf dem Zero 2 W geht Trixie 64-bit OS-Lite.;
+Mit starkem externen Netzteil versorgen da am Drucker definitiv zu schwach versorgt wird. Vermeide unbedingt das "double-power" problem!!
 
 ##START##
 Bei der Erstellung der SD-Karte (8GB oder mehr) mit Pi Imager und Windows schon SSH-Zugriff einstellen und Wlan-Settings setzen.
