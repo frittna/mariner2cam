@@ -1,7 +1,7 @@
 🔴 # Mariner 2 Cam for Pi Zero 2
 
 ### 3D-Printer Monitoring Tool with Camera Support + OTG-USB-Gadget, Firewall, VPN, Fail2ban and Webmin installation
-**Status:** Work-in-progress, but working stable and fine now. I went through all the steps in my guide again from a fresh install to prove it.
+**Status:** Work-in-progress, but working stable and fine now. I went through all the steps in my guide again from a fresh install to test it.
 
 >**Chitobox-Note:** The ctb encryption from amd989 had to be modified a bit to work on new `.ctb` files (is it a bug or caused by a Chitobox update?).
 
