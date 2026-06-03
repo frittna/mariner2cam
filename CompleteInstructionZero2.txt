@@ -1071,7 +1071,9 @@ curl -fsSL https://tailscale.com/install.sh | sh
 sudo tailscale up
 #den Status kann man spärer abrufen mit:  tailscale status
 
-Was passiert nach sudo tailscale up? Der Pi generiert in der Konsole eine eindeutige Internetadresse (einen Login-Link).Kopieren Sie diesen Link und öffnen Sie ihn im Browser auf Ihrem PC.Melden Sie sich dort an oder einloggen. Der Pi wird sofort in Ihr privates Netzwerk aufgenommen und erhält eine eigene, dauerhafte IP-Adresse (beginnend mit 100.X.X.X).
+Was passiert nach sudo tailscale up? Der Pi generiert in der Konsole eine eindeutige Internetadresse (einen Login-Link).
+Kopieren Sie diesen Link und öffnen Sie ihn im Browser auf Ihrem PC.Melden Sie sich dort an oder einloggen. Der Pi wird sofort in Ihr privates Netzwerk aufgenommen und erhält eine eigene,
+dauerhafte IP-Adresse (beginnend mit 100.X.X.X).
 
 Wenn das Verknpüfen am PI scheinbar nicht geht und ein Ping und die Zeile mit der Adresse im Pi-Command stecken bleibt folgende Maßnahme machen:
 Schritt 1: Den richtigen Auth-Key am PC erstellen. Öffnen Sie an Ihrem PC oder Smartphone die Tailscale-Webseite und loggen Sie sich mit dem Konto ein, das auch auf Ihrem Handy aktiv ist. 
