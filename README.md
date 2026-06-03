@@ -1,4 +1,4 @@
-# Mariner 2 Cam #
+# Mariner 2 Cam for Pi Zero 2
 
 ### 3D-Printer Monitoring Tool with Camera Support + OTG-USB-Gadget, Firewall, VPN, Fail2ban and Webmin installation
 **Status:** Work-in-progress, but working stable and fine now. I went through all the steps in my guide again from a fresh install to prove it.
