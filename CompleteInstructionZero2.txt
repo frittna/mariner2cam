@@ -1129,8 +1129,8 @@ sudo mount -o loop,rw,uid=1000,gid=1000,dmask=000,fmask=000 /piusb.bin /mnt/usb_
 sudo modprobe g_mass_storage file=/piusb.bin stall=0 removable=1 idVendor=0x0525 idProduct=0xa4a5 iSerialNumber=123456 ro=0
 sudo chmod 666 /piusb.bin
 
-# Müll-Ordner (wie "System Volume Information" von Windows) im Share löschen:
-sudo rm -rf /mnt/usb_share/*
+# Müll-Ordner ("System Volume Information" von Windows) im Share-Ordner löschen:
+sudo rm -rd /mnt/usb_share/'System Volume Information'
 
 # "Checkdisk" machen:
 sudo dosfsck -a /piusb.bin
