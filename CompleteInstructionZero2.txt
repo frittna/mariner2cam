@@ -36,8 +36,6 @@ sudo mariner3d-setup-pi --size 1280  #(ohne Argument sind es 2GB, bei 8GB SD-Kar
 sudo nano /etc/modprobe.d/usb_gadget.conf
 #In diese Datei folgendes einfügen:
 options g_mass_storage file=/piusb.bin stall=0 removable=1 idVendor=0x0525 idProduct=0xa4a5 iSerialNumber=123456 ro=0
-options g_mass_storage file=/mnt/usb_share/mariner2cam.bin stall=0 removable=1 ro=0
-
 
 #dann folgende Datei ändern:
 sudo nano /boot/firmware/config.txt
@@ -48,12 +46,21 @@ enable_uart=1
 dtoverlay=dwc2
 camera_auto_detect=1
 dtoverlay=vc4-kms-v3d
-dtoverlay=gpio-shutdown,gpio_pin=21,active_low=1,gpio_pull=up,debounce_ms=1000
+dtoverlay=gpio-shutdown,gpio_pin=21,active_low=1,gpio_pull=up,debounce=1000
 
 #Die letzte Zeile ist nur für einen optionalen Shutdown-Button zwischen PIN40 (GPIO21) & PIN39 (GND)
 
-sudo reboot   #danach sollte das USB-Laufwerk in Windows funktionieren
+#Rechte fixen
+sudo chown -R pi:www-data /mnt/usb_share
+sudo chmod -R 666 /mnt/usb_share
+sudo chmod 777 /piusb.bin
+sudo chown pi:www-data /piusb.bin
 
+sudo reboot
+
+sudo modprobe -r g_mass_storage
+sudo modprobe g_mass_storage
+#danach sollte das USB-Laufwerk in Windows funktionieren, auch mit schreibe Recht
 
 # JETZT DIE WICHTIGEN KORREKTUREN FÜR MARINER2:
 #Damit mariner mit ganz aktuellen Chitubox .ctb Dateien keine Probleme hat und stecken bleibt MUSS man 
@@ -145,9 +152,6 @@ sudo nano /etc/fstab
 
 #neu starten:
 sudo reboot
-
-sudo chown -R pi:www-data /mnt/usb_share
-sudo chmod -R 666 /mnt/usb_share
 
 #Jetzt noch WLAN Standby und serielle Konsolen (wegen Kamera) deaktivieren:
 sudo iw wlan0 set power_save off     
@@ -1094,27 +1098,50 @@ sudo nano /boot/firmware/cmdline.txt    #(nicht empfohlen) folgendes hinten anh�
  video=HDMI-A-1:d
 
 sudo reboot
+
 *******************************************************************************************
 #ENDE DER ANLEITUNG - wenn erfolgreich.. nicht schlecht!
 *******************************************************************************************
-##Bei unbekannten Fehlern oder Problemen möglicherweise das helfen:
-#Cache löschen:
+
+## Bei unbekannten Fehlern oder Problemen kann das hier helfen:
+
+# RAM-Cache manuell leeren (gibt blockierten Speicher frei):
 sudo sync && sudo sysctl -w vm.drop_caches=3
-#Oder den USB-Container komplett zurücksetzen & neu erstellen
+
+# ODER den USB-Container komplett zurücksetzen & frisch neu erstellen:
 sudo umount -fl /mnt/usb_share
 sudo modprobe -r g_mass_storage
 sudo systemctl stop smbd nmbd
 sudo rm -f /piusb.bin
-sudo dd if=/dev/zero of=/piusb.bin bs=1M count=1024   #oder mehr 2048 4092 6144 
+
+# Container neu erstellen (1024 MB):
+sudo dd if=/dev/zero of=/piusb.bin bs=1M count=1024  # Für mehr Platz: 2048, 4096 oder 6144 nehmen
 sudo mkfs.vfat -F 32 -n "MARINER" /piusb.bin
 sudo mkdir -p /mnt/usb_share
 sudo mount -o loop,rw,uid=1000,gid=1000,dmask=000,fmask=000 /piusb.bin /mnt/usb_share
-#Danach das USB-Gadget für den Drucker/PC wieder aktivieren:
+
+# Danach das USB-Gadget für den PC/Drucker mit Schreibrechten neu starten:
 sudo modprobe g_mass_storage file=/piusb.bin stall=0 removable=1 idVendor=0x0525 idProduct=0xa4a5 iSerialNumber=123456 ro=0
 sudo chmod 666 /piusb.bin
-rm /mnt/usb_share/* -rd    ##müll Ordner löschen
-für eine Art Taskmanager in der Konsole gibt es den Befehl:  htop
-#CPU Temperatur anzeigen, < 60°C wäre perfekt:           rpicam-still --version >/dev/null 2>&1; vcgencmd measure_temp
-#laufende CPU-Temp-Überwachung in der Kommandozeie mit:  watch -n 2 vcgencmd measure_temp
-#Wlan Stärke überprüfen:                                 sudo iwlist wlan0 scan | egrep "ESSID|Signal"
-Den Video-Stream allein findet man unter:   http://192.168.0.XXX:8889/cam/
+
+# Müll-Ordner (wie "System Volume Information" von Windows) im Share löschen:
+sudo rm -rf /mnt/usb_share/*
+
+# ====================================================================
+# NÜTZLICHE DIAGNOSE-BEFEHLE FÜR DIE KONSOLE:
+#
+# Taskmanager in der Konsole öffnen (Beenden mit Taste 'q'):
+htop
+
+# Aktuelle CPU-Temperatur anzeigen (< 60°C wäre perfekt):
+vcgencmd measure_temp
+
+# Laufende Live-CPU-Temperatur-Überwachung (alle 2 Sekunden aktualisiert):
+watch -n 2 vcgencmd measure_temp
+
+# WLAN-Signalstärke und Netzwerke in Reichweite scannen (Modern für Debian 13):
+sudo nmcli dev wifi list
+
+# Den Video-Stream im Netzwerk direkt im Browser aufrufen unter:
+# http://192.168.0.XXX:8889/cam/
+# ====================================================================
