@@ -1,4 +1,4 @@
-# Mariner 2 Cam for Pi Zero 2
+🔴 # Mariner 2 Cam for Pi Zero 2
 
 ### 3D-Printer Monitoring Tool with Camera Support + OTG-USB-Gadget, Firewall, VPN, Fail2ban and Webmin installation
 **Status:** Work-in-progress, but working stable and fine now. I went through all the steps in my guide again from a fresh install to prove it.
@@ -7,12 +7,13 @@
 
 ---
 
-* **GitHub-Project:** [frittna/mariner2cam](https://github.com)
-* **Last Changes:** 17:53 - 03.June.2026
-
-#### Project History (Forks)
-* This project is a fork from [Mariner 2 (amd989)](https://github.com)
-* Which was a fork from [Mariner (luizribeiro)](https://github.com)
+ **GitHub-Project:**
+ 
+  🔴 [https://github.com/frittna/mariner2cam]  * **Last Changes:** 17:53 - 03.June.2026
+  
+  Is a fork from the great Mariner 2 (amd989)    - [https://github.com/amd989/mariner]
+  
+  Which was a fork from Mariner (luizribeiro)    - [https://github.com/luizribeiro/mariner]
 
 ---
 
