@@ -1,6 +1,6 @@
-# Mariner 2 Cam
-### 3D-Printer Monitoring Tool with Camera Support + OTG-USB-Gadget, Firewall, VPN, Fail2ban and Webmin installation
+# Mariner 2 Cam #
 
+### 3D-Printer Monitoring Tool with Camera Support + OTG-USB-Gadget, Firewall, VPN, Fail2ban and Webmin installation
 **Status:** Work-in-progress, but working stable and fine now. I went through all the steps in my guide again from a fresh install to prove it.
 
 >**Chitobox-Note:** The code from amd989 had to be modified a bit to work on new `.ctb` files (is it a bug or caused by a Chitobox update?).
