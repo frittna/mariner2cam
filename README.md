@@ -60,8 +60,8 @@ small opto-coupler board with 3.3V GPIO-out (and additional output for additiona
 
 
 -> Demo video: (the first object is very small so we see nothing of it - its just a test - will print large things soon)
-[Demo-Video](docs/test_video_Ball_2026-07-19--18-39.mp4)
-[Demo-Video2](docs/cgScale_1_90percent_size_105ml.mp4)
+-[Demo-Video](docs/test_video_Ball_2026-07-19--18-39.mp4)
+-[Demo-Video2](docs/cgScale_1_90percent_size_105ml.mp4)
 
 
 
